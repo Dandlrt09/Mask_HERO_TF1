@@ -1,0 +1,15 @@
+[submodule "referencia/CIPTool"]
+	path = referencia/CIPTool
+	url = https://github.com/xan1242/CIPTool.git
+[submodule "referencia/EHPScanner"]
+	path = referencia/EHPScanner
+	url = https://github.com/xan1242/EHPScanner.git
+[submodule "referencia/TFCardEdit"]
+	path = referencia/TFCardEdit
+	url = https://github.com/xan1242/TFCardEdit.git
+[submodule "referencia/TFCardEditGUI"]
+	path = referencia/TFCardEditGUI
+	url = https://github.com/xan1242/TFCardEditGUI.git
+[submodule "referencia/tagforce-essentials"]
+	path = referencia/tagforce-essentials
+	url = https://github.com/DeaTh-G/tagforce-essentials.git

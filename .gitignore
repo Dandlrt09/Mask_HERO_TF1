@@ -1,0 +1,20 @@
+# --- Extracted / derived game data: copyrighted and regenerable, never commit ---
+*.iso
+*.cso
+*.ehp
+trabajo/*
+!trabajo/e2_genre_bits.txt
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+
+# --- Local agent/harness state ---
+.atl/
+
+# --- Editors / OS ---
+*.bak
+*.tmp
+*~
+.DS_Store
+Thumbs.db
