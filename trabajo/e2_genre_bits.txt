@@ -1,0 +1,103 @@
+Genre record 6 bytes/card, N= 2480
+
+=== byte0 bit1: 95 cards  kinds={1: 47, 14: 16, 13: 25, 3: 7}
+    D.D. Warrior[4262,k1], Lightforce Sword[4808,k14], Gravedigger Ghoul[4845,k13], Soul Release[4857,k13], Banisher of the Light[4914,k1], Nobleman of Crossout[4963,k13], Nobleman of Extermination[4964,k13], Dimensionhole[5132,k13], Alchemic Kettle - Chaos Distill[5188,k13], Lady Assailant of Flames[5198,k1]
+
+=== byte0 bit2: 131 cards  kinds={1: 57, 13: 29, 14: 35, 3: 7, 8: 2, 5: 1}
+    Dragon Piper[4046,k1], Reaper of the Cards[4090,k1], Trap Master[4230,k1], Armed Ninja[4475,k1], Weather Report[4589,k1], Greenkappa[4592,k1], Harpie's Feather Duster[4678,k13], Hannibal Necromancer[4750,k1], Cyber Raider[4760,k1], Remove Trap[4838,k13]
+
+=== byte0 bit3: 209 cards  kinds={1: 87, 13: 55, 14: 55, 3: 6, 5: 5, 7: 1}
+    Time Wizard[4022,k1], Dream Clown[4126,k1], Dark Hole[4342,k13], Raigeki[4343,k13], Zone Eater[4399,k1], Steel Scorpion[4400,k1], Swordsman from a Foreign Land[4405,k1], Mechanical Spider[4416,k1], Blast Juggler[4423,k1], Dragon Seeker[4506,k1]
+
+=== byte0 bit4: 41 cards  kinds={1: 20, 14: 11, 13: 10}
+    The Bistro Butcher[4529,k1], Needle Worm[4568,k1], Morphing Jar[4597,k1], Hiro's Shadow Scout[4617,k1], Chain Destruction[4813,k14], Card Destruction[4821,k13], Gravekeeper's Servant[4893,k13], Cyber Jar[4913,k1], Nobleman of Crossout[4963,k13], Nobleman of Extermination[4964,k13]
+
+=== byte0 bit5: 59 cards  kinds={1: 20, 14: 19, 13: 15, 7: 1, 6: 1, 3: 2, 8: 1}
+    White Magical Hat[4120,k1], Morphing Jar[4597,k1], Hiro's Shadow Scout[4617,k1], Crush Card Virus[4667,k14], Lightforce Sword[4808,k14], Card Destruction[4821,k13], Robbin' Goblin[4876,k14], Confiscation[4900,k13], Delinquent Duo[4901,k13], The Forceful Sentry[4907,k13]
+
+=== byte0 bit6: 26 cards  kinds={1: 22, 13: 4}
+    Ultimate Insect LV1[6097,k1], Horus the Black Flame Dragon LV4[6098,k1], Horus the Black Flame Dragon LV6[6099,k1], Horus the Black Flame Dragon LV8[6100,k1], Dark Mimic LV1[6101,k1], Dark Mimic LV3[6102,k1], Mystic Swordsman LV2[6103,k1], Mystic Swordsman LV4[6104,k1], Armed Dragon LV3[6105,k1], Armed Dragon LV5[6106,k1]
+
+=== byte0 bit7: 12 cards  kinds={6: 9, 13: 2, 14: 1}
+    Manga Ryu-Ran[4733,k6], Toon Mermaid[4734,k6], Toon Summoned Skull[4735,k6], Blue-Eyes Toon Dragon[4773,k6], Toon World[4798,k13], Toon Dark Magician Girl[5450,k6], Toon Defense[5473,k14], Toon Table of Contents[5474,k13], Toon Masked Sorcerer[5475,k6], Toon Gemini Elf[5476,k6]
+
+=== byte1 bit0: 16 cards  kinds={7: 12, 13: 2, 14: 2}
+    Maharaghi[5373,k7], Inaba White Rabbit[5374,k7], Yata-Garasu[5375,k7], Susa Soldier[5376,k7], Yamata Dragon[5377,k7], Great Long Nose[5378,k7], Otohime[5379,k7], Hino-Kagu-Tsuchi[5380,k7], Asura Priest[5381,k7], Fushi No Tori[5382,k7]
+
+=== byte1 bit1: 29 cards  kinds={0: 5, 8: 15, 1: 5, 13: 2, 14: 2}
+    X-Head Cannon[5504,k0], Y-Dragon Head[5552,k8], Z-Metal Tank[5555,k8], Dark Blade[5581,k0], Pitch-Dark Dragon[5582,k8], Kiryu[5583,k8], Decayed Commander[5584,k1], Zombie Tiger[5585,k8], Giant Orc[5586,k1], Second Goblin[5587,k8]
+
+=== byte1 bit2: 162 cards  kinds={0: 103, 2: 3, 1: 51, 4: 1, 5: 1, 8: 1, 3: 2}
+    Blue-Eyes White Dragon[4007,k0], Mystical Elf[4008,k0], Baby Dragon[4010,k0], Ryu-Kishin[4011,k0], Feral Imp[4012,k0], Winged Dragon, Guardian of the Fortress #1[4013,k0], Blackland Fire Dragon[4016,k0], Tyhone[4019,k0], Flame Swordsman[4021,k2], Time Wizard[4022,k1]
+
+=== byte1 bit3: 56 cards  kinds={1: 11, 13: 10, 9: 28, 14: 6, 8: 1}
+    Kuriboh[4064,k1], Insect Queen[4768,k1], Multiply[4805,k13], Scapegoat[4818,k13], Insect Monster Token[5115,k9], Multiplication of Ants[5116,k13], Jam Breeding Machine[5119,k13], Army Ant Token[5154,k9], Kuriboh Token[5368,k9], Sheep Token[5369,k9]
+
+=== byte1 bit4: 93 cards  kinds={1: 89, 7: 3, 13: 1}
+    Dragon Piper[4046,k1], Castle of Dark Illusions[4089,k1], Reaper of the Cards[4090,k1], Mask of Darkness[4108,k1], Big Eye[4177,k1], Trap Master[4230,k1], Princess of Tsurugi[4272,k1], Magician of Faith[4434,k1], The Immortal of Thunder[4468,k1], Armed Ninja[4475,k1]
+
+=== byte1 bit5: 93 cards  kinds={1: 45, 13: 17, 14: 23, 3: 3, 7: 2, 6: 1, 8: 2}
+    Dragon Piper[4046,k1], Stop Defense[4326,k13], Dragon Capture Jar[4335,k14], Spellbinding Circle[4355,k14], Dark-Piercing Light[4356,k13], Kunai with Chain[4657,k14], Shadow Spell[4675,k14], Acid Trap Hole[4691,k14], Thousand-Eyes Restrict[4740,k3], Big Shield Gardna[4764,k1]
+
+=== byte1 bit6: 31 cards  kinds={1: 16, 13: 11, 14: 3, 5: 1}
+    Mushroom Man #2[4559,k1], Invader of the Throne[4647,k1], Brain Control[4803,k13], Mind Control[4817,k13], Magical Arm Shield[4834,k14], Change of Heart[4860,k13], Snatch Steal[4898,k13], Jowls of Dark Demise[5035,k1], Electromagnetic Bagworm[5040,k1], Creature Swap[5162,k13]
+
+=== byte1 bit7: 97 cards  kinds={1: 45, 14: 36, 13: 9, 3: 7}
+    Jinzo[4758,k1], Big Shield Gardna[4764,k1], Gorgon's Eye[4799,k14], Amplifier[4819,k13], Call of the Grave[4854,k14], Solemn Judgment[4861,k14], Magic Jammer[4862,k14], Seven Tools of the Bandit[4863,k14], Royal Decree[4866,k14], Armored Glass[4942,k14]
+
+=== byte2 bit0: 119 cards  kinds={1: 75, 13: 23, 14: 17, 3: 3, 5: 1}
+    Dark Artist[4294,k1], Sword of Dark Destruction[4308,k13], Elf's Light[4313,k13], Steel Shell[4315,k13], Invigoration[4330,k13], Mechanical Spider[4416,k1], Insect Soldiers of the Sky[4484,k1], Hoshiningen[4498,k1], Star Boy[4530,k1], Milus Radiant[4533,k1]
+
+=== byte2 bit1: 212 cards  kinds={1: 97, 13: 81, 14: 27, 3: 6, 8: 1}
+    Dragon Piper[4046,k1], Castle of Dark Illusions[4089,k1], Wodan the Resident of the Forest[4241,k1], Legendary Sword[4307,k13], Dark Energy[4309,k13], Laser Cannon Armor[4311,k13], Insect Armor with Laser Cannon[4312,k13], Beast Fangs[4314,k13], Vile Germs[4316,k13], Silver Bow and Arrow[4318,k13]
+
+=== byte2 bit2: 49 cards  kinds={1: 27, 13: 9, 14: 13}
+    Crass Clown[4101,k1], Hane-Hane[4547,k1], Penguin Soldier[4608,k1], Wall of Illusion[4880,k1], Giant Trunade[4910,k13], Major Riot[4955,k14], De-Fusion[5118,k13], Spiritualism[5246,k13], Tornado Bird[5257,k1], Dramatic Rescue[5299,k14]
+
+=== byte2 bit3: 72 cards  kinds={1: 33, 13: 25, 14: 12, 7: 1, 6: 1}
+    Masked Sorcerer[4226,k1], Electric Snake[4469,k1], The Bistro Butcher[4529,k1], Skelengel[4546,k1], Morphing Jar[4597,k1], Hiro's Shadow Scout[4617,k1], Graceful Charity[4812,k13], Card Destruction[4821,k13], Pot of Greed[4844,k13], Upstart Goblin[4895,k13]
+
+=== byte2 bit4: 150 cards  kinds={1: 86, 13: 41, 14: 21, 5: 1, 3: 1}
+    Sangan[4054,k1], Elegant Egotist[4324,k13], Metalzoa[4398,k1], Thunder Dragon[4431,k1], Witch of the Black Forest[4580,k1], Magical Labyrinth[4658,k13], Red-Eyes Black Metal Dragon[4748,k1], Berfomet[4755,k1], Drill Bug[4775,k1], Dark Magic Curtain[4830,k13]
+
+=== byte2 bit5: 157 cards  kinds={1: 83, 13: 49, 3: 4, 14: 21}
+    Mask of Darkness[4108,k1], Penguin Knight[4205,k1], Axe of Despair[4310,k13], Horn of Light[4319,k13], Horn of the Unicorn[4320,k13], Malevolent Nuzzler[4327,k13], Monster Eye[4408,k1], Magician of Faith[4434,k1], Sinister Serpent[4481,k1], Cockroach Knight[4485,k1]
+
+=== byte2 bit6: 331 cards  kinds={1: 156, 13: 119, 14: 29, 5: 2, 3: 14, 6: 1, 8: 9, 9: 1}
+    Swamp Battleguard[4018,k1], Cocoon of Evolution[4078,k1], Castle of Dark Illusions[4089,k1], Pumpking the King of Ghosts[4105,k1], Wodan the Resident of the Forest[4241,k1], The Little Swordsman of Aile[4268,k1], Dark Artist[4294,k1], Legendary Sword[4307,k13], Sword of Dark Destruction[4308,k13], Dark Energy[4309,k13]
+
+=== byte2 bit7: 33 cards  kinds={1: 22, 13: 5, 14: 2, 8: 2, 3: 2}
+    Airknight Parshath[5023,k1], Fairy Meteor Crush[5128,k13], Mad Sword Beast[5142,k1], Cyclon Laser[5270,k13], Spear Dragon[5334,k1], Dragon's Rage[5347,k14], Exarion Universe[5452,k1], Gravekeeper's Spear Soldier[5512,k1], Pitch-Dark Dragon[5582,k8], Meteorain[5618,k14]
+
+=== byte3 bit0: 54 cards  kinds={5: 3, 3: 6, 1: 23, 14: 3, 13: 4, 8: 15}
+    Relinquished[4737,k5], Thousand-Eyes Restrict[4740,k3], Blast Sphere[4742,k1], Satellite Cannon[4780,k1], Waboku[4886,k14], Kiseitai[4976,k1], Rocket Warrior[5067,k1], Dizzy Angel[5172,k1], Swordsman Of Doom Lithmus[5175,k5], Maiden in Love[5177,k1]
+
+=== byte3 bit1: 103 cards  kinds={13: 17, 14: 38, 1: 38, 6: 9, 3: 1}
+    Swords of Revealing Light[4354,k13], Spellbinding Circle[4355,k14], Electric Lizard[4616,k1], Kunai with Chain[4657,k14], Shadow Spell[4675,k14], Widespread Ruin[4692,k14], Manga Ryu-Ran[4733,k6], Toon Mermaid[4734,k6], Toon Summoned Skull[4735,k6], Dark-Eyes Illusionist[4736,k1]
+
+=== byte3 bit2: 42 cards  kinds={1: 20, 6: 9, 3: 4, 7: 1, 8: 1, 13: 6, 14: 1}
+    Mystic Lamp[4393,k1], Leghul[4403,k1], Ooguchi[4404,k1], Jinzo #7[4428,k1], Rainbow Flower[4494,k1], Queen's Double[4641,k1], Manga Ryu-Ran[4733,k6], Toon Mermaid[4734,k6], Toon Summoned Skull[4735,k6], Gear Golem the Moving Fortress[4757,k1]
+
+=== byte3 bit3: 30 cards  kinds={1: 19, 7: 1, 13: 6, 3: 3, 5: 1}
+    Hayabusa Knight[5137,k1], Tyrant Dragon[5333,k1], Gray Wing[5340,k1], Asura Priest[5381,k7], Combination Attack[5604,k13], Diffusion Wave-Motion[5631,k13], Berserk Dragon[5700,k1], Twin Swords of Flashing Light - Tryce[5729,k13], Black Luster Soldier - Envoy of the Beginning[5835,k1], Mataza the Zapper[5898,k1]
+
+=== byte3 bit4: 166 cards  kinds={1: 70, 13: 40, 14: 51, 5: 2, 6: 1, 3: 2}
+    Time Wizard[4022,k1], Catapult Turtle[4095,k1], Princess of Tsurugi[4272,k1], Black Pendant[4317,k13], Sparks[4349,k13], Hinotama[4350,k13], Final Flame[4351,k13], Ookazi[4352,k13], Tremendous Fire[4353,k13], Ameba[4490,k1]
+
+=== byte3 bit5: 65 cards  kinds={1: 21, 13: 27, 14: 15, 7: 1, 3: 1}
+    Mysterious Puppeteer[4172,k1], Mooyan Curry[4344,k13], Red Medicine[4345,k13], Goblin's Secret Remedy[4346,k13], Soul of the Pure[4347,k13], Dian Keto the Cure Master[4348,k13], The Immortal of Thunder[4468,k1], Griggle[4553,k1], Skull-Mark Ladybug[4770,k1], Blue Medicine[4840,k13]
+
+=== byte3 bit6: 19 cards  kinds={1: 12, 14: 5, 13: 1, 5: 1}
+    Hannibal Necromancer[4750,k1], Skilled White Magician[5648,k1], Skilled Dark Magician[5649,k1], Apprentice Magician[5650,k1], Magical Marionette[5653,k1], Breaker the Magical Warrior[5655,k1], Magical Plant Mandragola[5656,k1], Royal Magical Library[5658,k1], Armor Exe[5659,k1], Pitch-Black Power Stone[5668,k14]
+
+=== byte3 bit7: 38 cards  kinds={1: 21, 13: 3, 14: 12, 5: 1, 3: 1}
+    Time Wizard[4022,k1], Jirai Gumo[4373,k1], Goddess of Whim[4435,k1], Barrel Dragon[4749,k1], Graceful Dice[4815,k13], Skull Dice[4816,k14], Gamble[4950,k14], Kryuel[5022,k1], Fairy Box[5113,k14], Blind Destruction[5268,k14]
+
+=== byte4 bit0: 311 cards  kinds={13: 107, 1: 146, 3: 8, 14: 48, 8: 1, 5: 1}
+    Elegant Egotist[4324,k13], Cyber-Stein[4426,k1], Magical Labyrinth[4658,k13], Black Luster Ritual[4676,k13], Zera Ritual[4677,k13], War-Lion Ritual[4679,k13], Beastly Mirror Ritual[4680,k13], Commencement Dance[4682,k13], Hamburger Recipe[4683,k13], Novox's Prayer[4685,k13]
+
+=== byte4 bit1: 200 cards  kinds={2: 54, 1: 64, 4: 15, 6: 5, 5: 11, 3: 51}
+    Flame Swordsman[4021,k2], Zombie Warrior[4036,k2], Gaia the Dragon Champion[4043,k2], Karbonala Warrior[4049,k2], Larvae Moth[4062,k1], Great Moth[4063,k1], Harpie Lady Sisters[4069,k1], Perfectly Ultimate Great Moth[4073,k1], Thousand Dragon[4075,k2], Barox[4092,k2]
+
+=== byte4 bit2: 20 cards  kinds={1: 3, 13: 13, 5: 2, 14: 2}
+    Dizzy Tiger[5171,k1], Dizzy Angel[5172,k1], Hot Sauce Bottle[5173,k13], Flipping the Table[5174,k13], Swordsman Of Doom Lithmus[5175,k5], Ritual of Lithmus[5176,k13], Maiden in Love[5177,k1], Cupid Kiss[5178,k13], Defense Maiden[5179,k14], Happy Marriage[5180,k13]
