@@ -261,10 +261,39 @@ una **copia byte a byte** del registro de «Red Seasnake del gigante» (mismo `c
 tocar). La única diferencia es el índice. Verificado por relectura del ISO:
 `cardinfo_spa.ehp` 1125244 bytes, `sha256` idéntico, crecimiento 28 bytes.
 
-| Resultado de planD | Lectura |
+**Resultado de planD (L15): SIGUE PROHIBIDA.** La carta clonada es idéntica a una legal en
+nombre, descripción, ATK/DEF, tipo, genre, password, `card_id` y arte — y el editor de deck
+igual la marca con el ícono rojo y **no la deja volver al deck** desde el baúl
+(*«This is a Forbidden Card, so it cannot be added to the Deck»*).
+
+> ### Conclusión
+>
+> **El veredicto «Forbidden» no depende de lo que dice la carta, sino de *dónde vive*.**
+> El motor compara por posición (índice interno), no por contenido. Como el contenido es
+> byte a byte el de una carta legal, la única diferencia que le queda por mirar es el
+> **índice interno 2480** y/o el mapeo `IntID[4453] → 2480` (no canónico).
+>
+> **El pipeline de *datos* funciona** (nombre, stats, texto y arte se leen del registro
+> nuevo: eso está probado en pantalla y en duelo), pero **el validador de deck no acepta el
+> registro**, y eso hay que resolverlo antes de armar las 18 cartas, porque el jugador no
+> podría meterlas en un deck.
+
+Dato de orden que sugiere el mecanismo: `IntID` es **monótono en CardID** (índice 1..2479
+en orden de CardID, salteando los IDs libres). Nuestro registro quedó en el índice 2480,
+*después* de la última carta, rompiendo esa monotonía.
+
+**Plan E (candidato a solución, no sólo diagnóstico).** En vez de appendear al final,
+**insertar** el registro en el índice que le corresponde por orden de CardID y **remapear**
+`IntID` de todas las cartas posteriores (+1), con las arrays reordenadas igual. Si funciona,
+es la estrategia final del puerto; si no, la causa es una tabla por índice que hay que
+encontrar. Señal adicional: si tras planE **otra** carta del deck aparece con el ícono rojo,
+eso delata que existe una tabla indexada por índice desalineada por la inserción.
+
+| Resultado de planE | Lectura |
 |---|---|
-| Se puede agregar al deck, sin ícono | El índice nuevo no es el problema: el rechazo lo dispara algún campo modificado |
-| Sigue diciendo *Forbidden Card* | El rechazo viene del índice/registro appendado → toca leer `libdeck.prx` |
+| La carta se puede agregar al deck | El problema era la posición: la estrategia es **insertar en orden**, no appendear |
+| Sigue prohibida y ninguna otra cambia | Hay una tabla/acceso por índice fuera de la zona que tocamos → buscarla |
+| Aparece el ícono en **otra** carta | Existe una tabla por índice: la inserción la desalineó. Ubicarla |
 
 ### Revisión nativa del modo `--clone` (L14)
 
@@ -359,3 +388,8 @@ tiene** Celtic Guardian → el canal "lista completa" no existe y la canaria ori
   `native-last-event-closure`, `state: escalated`, hallazgo severo `R3-1` de **causalidad
   indeterminada** (`unknown_causality`) y acción de mantenedor **informativa**; el texto del
   hallazgo no es legible desde el cliente.
+- **L15** (usuario, capturas de planD): la carta clonada se ve **normal** («RED SEASNAKE DEL
+  GIGANTE», ATK 1800/DEF 800, [AQUA], su arte) pero **igual lleva el ícono rojo**, y al
+  pasarla al baúl el juego responde *«This is a Forbidden Card, so it cannot be added to the
+  Deck»*: no la deja volver. → **El rechazo es por posición (índice), no por contenido.**
+  Nace el **Plan E** (insertar en orden de CardID + remapear `IntID`).
