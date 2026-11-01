@@ -426,6 +426,11 @@ tiene** Celtic Guardian → el canal "lista completa" no existe y la canaria ori
   `native-last-event-closure`, `state: escalated`, hallazgo severo `R3-1` de **causalidad
   indeterminada** (`unknown_causality`) y acción de mantenedor **informativa**; el texto del
   hallazgo no es legible desde el cliente.
+- **L18** (usuario, textual): «La C es la mas complicada? me gustaria ir por ella y sino pues
+  reemplazar aunque pensaba en reemplazar quiza prohibidas sabiendo que no son usadas por los
+  npc y luego desprohibirlas. Por ahora vamos a cerrar sesión y guardar. Mañana seguimos» →
+  orden C → A(prohibidas); se verificó que los recipes **sí** referencian las 23 (858 en
+  `all_s.ehp`, 27 en `recipe_npc.ehp`) y se registró la estrategia y los pendientes.
 - **L16** (usuario, capturas de la pantalla de listas): «Ajustes predeterminados» muestra
   Prohibida **23** / Limitada **50** / Semi-Limitada **11**, con la lista real de 2006
   (Raigeki, Yata-Garasu, Cambio de Fidelidad, Fuerza de Espejo, Orden Imperial, Sexto
@@ -463,3 +468,30 @@ tiene dueño**. Agregar cartas obliga a elegir entre:
 
 La A y la B cuestan 18 cartas reales; la C costaría tiempo. A es la única ya probada punta a
 punta.
+
+### Decisión de estrategia (L18, cierre de sesión)
+
+Orden elegido: **primero C** (buscar y, si se puede, subir el límite: no se pierde ninguna
+carta) y, si C no sale, **A sobre las 23 ranuras prohibidas** (idea del usuario): reutilizar
+los CardID de la lista de prohibidas — cartas que el jugador **no puede usar en un deck** — y
+después desprohibirlas.
+
+Verificado antes de adoptarla:
+
+- Los recipes **sí** referencian las 23 prohibidas: `deck/all_s.ehp` **858 referencias** (las
+  23 aparecen) y `duelsys/recipe_npc.ehp` **27** (5 de ellas). Conclusión: el jugador no
+  pierde nada (no podía usarlas en su deck), pero **algunos mazos de NPC mostrarían las
+  cartas nuevas** en lugar de las prohibidas.
+- Desprohibir: la lista activa es editable por el jugador («Menú Cambio de Lista»). Si el
+  preset también la aplica, hay que ubicar el dato de la lista (queda pendiente).
+
+### Pendiente para la próxima sesión
+
+1. **C**: ubicar dónde vive el límite del validador de deck (`libdeck.prx` no tiene 2480 como
+   constante de código; `libcardalbum.prx` sí tiene `slti a3, v0, 2480`; los `gmodule/*.prx`
+   son ELF sin cifrar y se pueden parchear en el lugar).
+2. Si C no es viable (p. ej. el límite vive en el `EBOOT` cifrado): **A** sobre las 23
+   ranuras prohibidas.
+3. Pipeline real de las 18 cartas: Prop + Genre + Indx + Name/Desc + alias de arte.
+4. Efectos: E4 (Cambio de Máscara como código AR); el frente ARM es viable porque los
+   `gmodule/*.prx` son ELF.
