@@ -123,10 +123,16 @@ def describe(data: bytes, card_id: int, base: int = CARD_ID_BASE) -> dict:
 def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str | None = None,
              desc: str | None = None, atk: int | None = None, dfn: int | None = None,
              level: int | None = None, copy_strings: bool = False,
+             in_place: bool = False,
              canaries: tuple[tuple[int, int], ...] = (),
              also_map: tuple[int, ...] = (),
              base: int = CARD_ID_BASE) -> tuple[bytes, dict]:
-    """`copy_strings` makes the new record an exact clone of the donor's record
+    """`in_place` writes the card into the donor's own internal index instead of
+    appending a record, so its legality status is looked up at a canonical, in-range
+    position. That is the experiment that tells a positional rule from a content rule
+    (it sacrifices the donor card).
+
+    `copy_strings` makes the new record an exact clone of the donor's record
     (same name and description offsets), which is the control experiment: the card
     reads identically, the only difference is that its data is served from the new
     internal index."""
@@ -160,7 +166,9 @@ def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str | None 
     if level is not None:
         new_p2 = (new_p2 & ~(LEVEL_MASK << LEVEL_SHIFT)) | ((level & LEVEL_MASK) << LEVEL_SHIFT)
 
-    report = {"internal_index": idx, "donor_internal_index": donor_idx,
+    target = donor_idx if in_place else idx
+    report = {"internal_index": target, "in_place": in_place,
+              "donor_internal_index": donor_idx,
               "donor_prop1": p1, "donor_prop2": p2, "new_prop1": new_p1,
               "new_prop2": new_p2, "old_size": len(data)}
 
@@ -176,17 +184,17 @@ def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str | None 
             {"card_id": cid, "internal_index": ci, "atk_before": before, "atk_after": catk})
 
     # the new record at internal index `idx`
-    prop = bytes(prop[:idx * 8]) + struct.pack("<II", new_p1, new_p2) + bytes(prop[idx * 8:])
-    bodies[region(entries, "CARD_Prop").name] = prop
+    prop = bytes(prop)
+    bodies[region(entries, "CARD_Prop").name] = (
+        prop[:target * 8] + struct.pack("<II", new_p1, new_p2) + prop[(target + 1) * 8:])
 
-    genre_entry = region(entries, "CARD_Genre")
-    bodies[genre_entry.name] = genre_entry.body[:idx * 6] + genre_entry.body[donor_idx * 6:donor_idx * 6 + 6]
-
-    passw_entry = region(entries, "CARD_Pass")
-    bodies[passw_entry.name] = passw_entry.body[:idx * 4] + passw_entry.body[donor_idx * 4:donor_idx * 4 + 4]
-
-    sort_entry = region(entries, "CARD_Sort")
-    bodies[sort_entry.name] = sort_entry.body[:idx * 2] + sort_entry.body[donor_idx * 2:donor_idx * 2 + 2]
+    # the parallel arrays keep the donor's own value: appending copies it to the end,
+    # in place it is already there
+    for prefix, width in (("CARD_Genre", 6), ("CARD_Pass", 4), ("CARD_Sort", 2)):
+        entry = region(entries, prefix)
+        donor_bytes = entry.body[donor_idx * width:donor_idx * width + width]
+        bodies[entry.name] = (entry.body[:target * width] + donor_bytes
+                              + entry.body[(target + 1) * width:])
 
     names_entry = region(entries, "CARD_Name")
     descs_entry = region(entries, "CARD_Desc")
@@ -209,17 +217,21 @@ def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str | None 
             report.update(desc_off=desc_off, desc_bytes=len(desc_bytes),
                           desc_of_donor=donor_desc_off)
 
-    bodies[indx_entry.name] = (indx_entry.body[:idx * 8]
-                               + struct.pack("<II", name_off, desc_off)
-                               + indx_entry.body[idx * 8:])
-
-    for cid in also_map:
-        struct.pack_into("<H", intid, (cid - base) * 2, idx)
-        report.setdefault("remapped", []).append(
-            {"card_id": cid, "internal_index": idx, "intid_slot": (cid - base) * 2})
-    struct.pack_into("<H", intid, (card_id - base) * 2, idx)
-    bodies[region(entries, "CARD_IntID").name] = bytes(intid)
-    report["intid_slot"] = (card_id - base) * 2
+    pair = struct.pack("<II", name_off, desc_off)
+    if in_place:
+        bodies[indx_entry.name] = (indx_entry.body[:target * 8] + pair
+                                   + indx_entry.body[(target + 1) * 8:])
+        report["note"] = "written in place: IntID untouched, no record appended"
+    else:
+        bodies[indx_entry.name] = (indx_entry.body[:idx * 8] + pair
+                                   + indx_entry.body[idx * 8:])
+        for cid in also_map:
+            struct.pack_into("<H", intid, (cid - base) * 2, idx)
+            report.setdefault("remapped", []).append(
+                {"card_id": cid, "internal_index": idx, "intid_slot": (cid - base) * 2})
+        struct.pack_into("<H", intid, (card_id - base) * 2, idx)
+        bodies[region(entries, "CARD_IntID").name] = bytes(intid)
+        report["intid_slot"] = (card_id - base) * 2
 
     out = rebuild(data, bodies)
     report["new_size"] = len(out)
@@ -241,6 +253,7 @@ def main(argv: list[str]) -> int:
     also_map: list[int] = []
     desc = None
     copy_strings = False
+    in_place = False
     card_id = donor = None
     name = None
     i = 3
@@ -258,6 +271,8 @@ def main(argv: list[str]) -> int:
             desc = argv[i + 1]; i += 2
         elif a == "--copy-strings":
             copy_strings = True; i += 1
+        elif a == "--in-place":
+            in_place = True; i += 1
         elif a == "--canary":
             cid, catk = argv[i + 1].split(":")
             canaries.append((int(cid), int(catk))); i += 2
@@ -269,7 +284,7 @@ def main(argv: list[str]) -> int:
             raise SystemExit(f"unknown option {a}")
     data = open(src, "rb").read()
     out, report = add_card(data, card_id=card_id, donor_card_id=donor, name=name,
-                           desc=desc, copy_strings=copy_strings,
+                           desc=desc, copy_strings=copy_strings, in_place=in_place,
                            canaries=tuple(canaries),
                            also_map=tuple(also_map), **opts)
     with open(dst, "wb") as f:

@@ -295,6 +295,44 @@ eso delata que existe una tabla indexada por índice desalineada por la inserci�
 | Sigue prohibida y ninguna otra cambia | Hay una tabla/acceso por índice fuera de la zona que tocamos → buscarla |
 | Aparece el ícono en **otra** carta | Existe una tabla por índice: la inserción la desalineó. Ubicarla |
 
+**Dato delator en la pantalla de prohibidas (L16).** La lista real que muestra el juego
+(«Ajustes predeterminados») es la de 2006: Prohibida **23**, Limitada **50**, Semi-Limitada
+**11** — Raigeki, Yata-Garasu, Cambio de Fidelidad, Fuerza de Espejo, Orden Imperial, Sexto
+Sentido, Dúo de Delincuentes, etc. Pero **«Red Seasnake del gigante» aparece PRIMERO**,
+rompiendo el orden alfabético del resto (Bruja, Científico, Dragón, Fiber…) y con contadores
+distintos: `1 / 0 / 55` contra `0 / 0 / 0` de las cartas reales (que el jugador no posee).
+Es exactamente lo que predice la hipótesis posicional: el estado de legalidad se consulta
+**por índice**, y para nuestro registro (fuera de la tabla) la lectura no tiene entrada →
+«prohibida» → la pantalla la lista *a ella*.
+
+**Falso positivo a descartar (y descartado).** Una búsqueda de los CardID prohibidos dentro
+del ISO dio 23 aciertos dentro de `cardinfo_spa.ehp`, pero al cruzar cada acierto con las
+regiones del contenedor resultaron ser los **propios registros `Prop`** de esas cartas (su
+campo `card_id`) más coincidencias de bytes: **la lista NO está en `cardinfo`**.
+
+### Plan F — contenido nuevo en un índice canónico
+
+Para separar «rechaza por posición» de «rechaza por contenido» sin depender de ninguna
+tabla: escribir el contenido nuevo **dentro del índice canónico 447** (el de «Red Seasnake
+del gigante»), con `IntID[4453] = 447` **intacto** y sin appendear ni crecer ninguna array.
+
+```bash
+python3 tools/e1_patch_iso.py --lang spa --dst trabajo/TF1-E1-test-planF.iso \
+    --card-id 4453 --donor 4453 --in-place --art-from 4047 \
+    --name "E1 TEST CARD" --desc "E1 TEST: same slot, new content." \
+    --atk 4900 --def 1200 --level 4 --canary 5759:4850
+```
+
+Nuevas opciones en las herramientas: `--in-place` (`cardinfo_add.py` y `e1_patch_iso.py`)
+escribe sobre el índice del donante en vez de appendear, y `--art-from CARDID` permite tomar
+el arte de otra carta distinta del donante de datos. Verificado: con `--copy-strings` el modo
+en el lugar es un no-op perfecto (crecimiento 0, lectura idéntica).
+
+| Resultado de planF | Lectura |
+|---|---|
+| El juego la acepta (sin ícono, se puede sacar y devolver al deck) | **La regla es posicional**: el puerto debe **insertar en orden de CardID** (plan E), no appendear |
+| Sigue prohibida | El validador **sí** mira algún campo del contenido → separar uno por uno |
+
 ### Revisión nativa del modo `--clone` (L14)
 
 La revisión por lentes terminó en un **cierre con escalamiento**:
@@ -388,6 +426,16 @@ tiene** Celtic Guardian → el canal "lista completa" no existe y la canaria ori
   `native-last-event-closure`, `state: escalated`, hallazgo severo `R3-1` de **causalidad
   indeterminada** (`unknown_causality`) y acción de mantenedor **informativa**; el texto del
   hallazgo no es legible desde el cliente.
+- **L16** (usuario, capturas de la pantalla de listas): «Ajustes predeterminados» muestra
+  Prohibida **23** / Limitada **50** / Semi-Limitada **11**, con la lista real de 2006
+  (Raigeki, Yata-Garasu, Cambio de Fidelidad, Fuerza de Espejo, Orden Imperial, Sexto
+  Sentido, Dúo de Delincuentes, El Centinela Enérgico…). **«Red Seasnake del gigante»
+  aparece primero, fuera del orden alfabético, con contadores `1 / 0 / 55`** contra `0 / 0 / 0`
+  de las cartas reales que el jugador no posee. El usuario ofreció además las capturas de
+  Limitada y Semi-Limitada (pedidas). Falso positivo propio descartado en el mismo paso:
+  los 23 aciertos de CardID prohibido dentro de `cardinfo_spa.ehp` eran los **propios
+  registros `Prop`** de esas cartas (campo `card_id`), no una lista. Se construyó **planF**
+  (`--in-place` sobre el índice canónico 447 + `--art-from 4047`).
 - **L15** (usuario, capturas de planD): la carta clonada se ve **normal** («RED SEASNAKE DEL
   GIGANTE», ATK 1800/DEF 800, [AQUA], su arte) pero **igual lleva el ícono rojo**, y al
   pasarla al baúl el juego responde *«This is a Forbidden Card, so it cannot be added to the

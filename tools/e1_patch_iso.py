@@ -70,8 +70,10 @@ def cip_slot(blob: bytes, card_id: int) -> int:
 
 def build(src: str, dst: str, *, card_id: int, donor: int, name: str,
           desc: str | None, atk: int | None, level: int | None,
+          dfn: int | None = None,
           canaries: tuple[tuple[int, int], ...], repoints: tuple[int, ...],
-          lang: str, clone: bool = False) -> int:
+          lang: str, clone: bool = False, in_place: bool = False,
+          art_from: int | None = None) -> int:
     ehp_path, art_paths = lang_paths(lang)
     print(f"--- language: {lang} -> {ehp_path}")
     if not art_paths:
@@ -80,7 +82,8 @@ def build(src: str, dst: str, *, card_id: int, donor: int, name: str,
     ehp = iso_replace.read_iso_file(src, ehp_path)
     new_ehp, report = cardinfo_add.add_card(
         ehp, card_id=card_id, donor_card_id=donor, name=name, desc=desc, atk=atk,
-        level=level, canaries=canaries, also_map=repoints, copy_strings=clone)
+        dfn=dfn, level=level, canaries=canaries, also_map=repoints, copy_strings=clone,
+        in_place=in_place)
     for k, v in report.items():
         print(f"    {k}: {v}")
 
@@ -97,14 +100,15 @@ def build(src: str, dst: str, *, card_id: int, donor: int, name: str,
     print(f"--- 3. alias the artwork into {targets} ---")
     for art in art_paths:
         blob = iso_replace.read_iso_file(src, art)
-        donor_slot = cip_slot(blob, donor)
+        art_card = donor if art_from is None else art_from
+        donor_slot = cip_slot(blob, art_card)
         entry = blob[donor_slot:donor_slot + 8]
         for target in targets:
             slot = cip_slot(blob, target)
             before = blob[slot:slot + 8]
             out = iso_replace.patch_bytes(dst, art, slot, entry, expected=before)
             print(f"    {art}: slot {target} @0x{slot:X} "
-                  f"{before.hex()} -> {out['after']} (donor {donor} @0x{donor_slot:X})")
+                  f"{before.hex()} -> {out['after']} (art from {art_card} @0x{donor_slot:X})")
 
     print("--- 4. readback from the patched ISO ---")
     back = iso_replace.read_iso_file(dst, ehp_path)
@@ -146,6 +150,9 @@ def main(argv: list[str]) -> int:
     canaries: tuple[tuple[int, int], ...] = ()
     repoints: tuple[int, ...] = ()
     clone = False
+    in_place = False
+    dfn: int | None = None
+    art_from: int | None = None
     i = 1
     while i < len(argv):
         a = argv[i]
@@ -163,6 +170,8 @@ def main(argv: list[str]) -> int:
             desc = argv[i + 1]; i += 2
         elif a == "--atk":
             atk = int(argv[i + 1]); i += 2
+        elif a == "--def":
+            dfn = int(argv[i + 1]); i += 2
         elif a == "--level":
             level = int(argv[i + 1]); i += 2
         elif a == "--canary":
@@ -172,6 +181,10 @@ def main(argv: list[str]) -> int:
             repoints = repoints + (int(argv[i + 1]),); i += 2
         elif a == "--clone":
             clone = True; i += 1
+        elif a == "--in-place":
+            in_place = True; i += 1
+        elif a == "--art-from":
+            art_from = int(argv[i + 1]); i += 2
         elif a == "--lang":
             lang = argv[i + 1]; i += 2
         elif a == "--no-canary":
@@ -184,8 +197,8 @@ def main(argv: list[str]) -> int:
         # control experiment: an exact clone of the donor's record, no overrides
         desc, atk, level = None, None, None
     return build(src, dst, card_id=card_id, donor=donor, name=name, desc=desc,
-                 atk=atk, level=level, canaries=canaries, repoints=repoints,
-                 lang=lang, clone=clone)
+                 atk=atk, dfn=dfn, level=level, canaries=canaries, repoints=repoints,
+                 lang=lang, clone=clone, in_place=in_place, art_from=art_from)
 
 
 if __name__ == "__main__":
