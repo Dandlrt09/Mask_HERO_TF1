@@ -128,18 +128,50 @@ Ver `trabajo/TF1-E1-test.iso`. Es una copia del ISO con los datos parcheados.
 1. Cargar `trabajo/TF1-E1-test.iso` en PPSSPP, **en inglés**, y **empezar un duelo o
    abrir una pantalla nueva desde el juego** (no cargar un save state viejo: los save
    states pisan toda la RAM y darían un falso negativo).
-2. **Canaria 1:** en el editor de deck o en un duelo, mirar cualquier carta Celtic
-   Guardian. Debe mostrar **ATK 4850** en vez de 1400. Si no lo muestra, pará y avisá:
-   el EHP parcheado no se cargó.
-3. **Canaria 2:** buscar en el editor de deck una carta llamada **`E1 TEST CARD`**
-   (ATK 4900, nivel 4, arte de Celtic Guardian).
-4. Resultado esperado según lo que pase:
+2. **Canaria 1:** mirar cualquier **Celtic Guardian que aparezca en pantalla** (en el
+   álbum, en tu deck si la tenés, o durante un duelo). Debe mostrar **ATK 4850** en vez
+   de 1400. Si no la ves en ningún lado, eso **no** es un fallo del parche: avisá y
+   elegimos otra canaria entre cartas que sí tengas.
+3. **Canaria 2 y canal de observación — CORREGIDO.** El **editor de deck sólo muestra
+   las cartas que tenés en el save**: una carta nueva (CardID 4661) no está en tu save,
+   así que **no aparecería ahí aunque el motor aceptara el registro**. Esa pantalla no
+   sirve para decidir. El canal válido es una pantalla que liste **toda la base**, es
+   decir el álbum / Card List:
+   - Abrí el álbum (lista de cartas completa) y fijate si lista también las cartas que
+     **no** tenés (silueta, `?`, contador en 0).
+   - Si sí las lista: antes del parche había **2479** entradas (los 472 IDs libres tienen
+     `exist = 0` y no deberían aparecer). Después del parche debería haber **una entrada
+     más**, cerca de la posición del CardID 4661, con el nombre `E1 TEST CARD`
+     (ATK 4900, nivel 4, arte de Celtic Guardian).
+   - Si el álbum sólo lista lo que tenés: **Plan B** (abajo).
+4. **Plan B si el álbum no sirve:** repuntar el `IntID` de un CardID que **ya tenés**
+   (uno que no te importe, es una copia descartable) al registro appendado 2480. El save
+   ya dice "esta carta es tuya", así que la carta nueva aparece en el editor de deck como
+   poseída, **sin tocar el save**. Sigue siendo un test válido del append: el registro
+   vive en un índice nuevo (2480) y el motor lo tiene que leer desde ahí.
+5. Resultado esperado según lo que pase:
 
 | Resultado | Lectura |
 |---|---|
-| Aparece `E1 TEST CARD` y se puede agregar al deck | el motor lee registros appendados: **pipeline de datos validado** y la Q2 de E0 se responde SÍ |
-| No aparece, pero la canaria 1 se ve | el EHP se lee, pero el motor no acepta registros fuera de rango / no indexa por `IntID` como creemos |
-| No aparece nada y tampoco la canaria 1 | el EHP parcheado no se cargó (o el juego no es la versión inglesa): hay que revisar el reemplazo del archivo en el ISO |
+| La carta nueva aparece (álbum, o editor por Plan B) | el motor lee registros appendados: **pipeline de datos validado** y la Q2 de E0 se responde SÍ |
+| La canaria 1 se ve, pero la carta nueva no aparece | el EHP se lee, pero el motor no acepta índices fuera de rango o no indexa por `IntID` como creemos |
+| No aparece nada, ni la canaria 1 | el EHP parcheado no se cargó (o el juego no está en la versión inglesa): hay que revisar el reemplazo del archivo en el ISO |
+
+### Por qué NO usar un código AR de "todas las cartas"
+
+1. **Rompe la atribución.** El test existe para distinguir "el motor leyó nuestro
+   registro" de "el parche no se cargó". Un código que parchea RAM mete una tercera
+   causa imposible de separar: si la carta aparece, ¿fue el motor o el código?
+2. **No agrega cartas a la base.** Un desbloqueo de colección toca el estado de tu save
+   (propiedad), no `cardinfo_eng.ehp`; por definición no puede enseñarnos si el motor
+   lee un registro appendado.
+3. **Puede crashear.** Los 472 IDs libres tienen la entrada de arte `{0,0}`, o sea que
+   apuntan al bloque 0 = el header del contenedor CIP. Cualquier código que fuerce a
+   "existen/tenés todas" hace que el juego intente dibujar esas cartas y lea basura.
+4. **No hace falta.** El set de referencia de la escena
+   (`referencia/tagforce-essentials/Codes/`) trae sólo 3 códigos para ULES00600 (voice
+   acting, point gauge, Uncensored Cards): no hay código de "todas las cartas" que
+   ya esté probado para esta versión del juego.
 
 ## Log
 
@@ -155,3 +187,8 @@ Ver `trabajo/TF1-E1-test.iso`. Es una copia del ISO con los datos parcheados.
   del ISO con la carta nueva y la canaria). Bug propio cazado antes de correr: el campo
   de tamaño del registro de directorio ISO9660 va little-endian **y** big-endian, y
   `Iso9660` no implementa el protocolo de contexto.
+- **L6** (usuario, textual): «Deberia de aplicar un codigo de todas las cartas para ver?»
+  → corregido el canal de observación (el editor de deck sólo muestra lo que tenés en el
+  save, así que no sirve para una carta nueva) y descartado el código AR por las razones
+  de §Por qué NO usar un código AR. Se agregó el Plan B (repuntar el `IntID` de un CardID
+  ya poseído al registro appendado).
