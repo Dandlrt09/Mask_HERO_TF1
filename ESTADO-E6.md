@@ -77,3 +77,14 @@ Herramientas nuevas previstas: `tools/e6_build_18.py` (constructor) y `tools/e6_
 - **L3 (usuario, verbatim).** «Guarda sesion, sigamos con esto en la proxima» → cierre de sesión: se guardan notas, memoria y commits.
 - **L4 (hallazgo).** El build de las 18 se canceló al detectarse (§4) que el ISO no tiene región contigua libre; el analizador `tools/e6_iso_space.py` quedó escrito y **verificado** (su medición se reprodujo en esta sesión). No se escribió ningún ISO de E6.
 - **L5 (nota de continuidad).** Quedan sin trackear y sin commitear a propósito: `tools/e6_iso_space.py` (verificado) y `tools/e5_patch_iso_c2.py` (diagnóstico del camino bloqueado del wrapper). El resto se commitea en esta sesión.
+
+## 8. Entrega (corte de slice)
+
+Rama `spike/e1-test`. Cierre de sesión con cuatro commits para E5 (el slice de la estrategia C queda cerrado y verificado):
+
+- `ac4187b` feat(e5): las tres herramientas (`e5_patch_iso.py`, `e5_patch_iso_c2.py`, `e5_c2_patch.py`)
+- `81d8ae6` docs(e5): `ESTADO-E5-limite.md`
+- `aebb888` feat(e6): `datos/cartas_18.tsv` + `datos/efectos_heroes_enmascarados.txt`
+- `b69bc37` docs(e6): este documento + `tools/e6_iso_space.py`
+
+**El corte de entrega queda acá**: E6 (las 18) es un slice nuevo, que arranca cuando se resuelva §4 (espacio en el ISO) y va con sus propios commits de unidad de trabajo. Los ISO de prueba viven en `trabajo/` y están en `.gitignore`. Push, PR y merge son decisión del usuario: nada se subió.
