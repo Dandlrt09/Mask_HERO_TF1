@@ -441,3 +441,25 @@ tiene** Celtic Guardian → el canal "lista completa" no existe y la canaria ori
   pasarla al baúl el juego responde *«This is a Forbidden Card, so it cannot be added to the
   Deck»*: no la deja volver. → **El rechazo es por posición (índice), no por contenido.**
   Nace el **Plan E** (insertar en orden de CardID + remapear `IntID`).
+
+### RESULTADO de planF (L17): ACEPTADA — la regla es POSICIONAL
+
+Con el contenido nuevo escrito en el índice **canónico 447** (`IntID[4453] = 447` intacto),
+el juego **acepta** la carta: sin ícono rojo, se puede sacar al baúl y volver a ponerla en el
+deck, y «Kind of possession card» volvió a 35. **El veredicto depende del índice, no del
+contenido.** Con planD (contenido idéntico, índice 2480) estaba prohibida; con planF
+(contenido nuevo, índice canónico) es legal.
+
+### Consecuencia: qué puede y qué no puede hacer el puerto
+
+Las 2479 posiciones 1..2479 están ocupadas por cartas reales, así que **todo índice "válido"
+tiene dueño**. Agregar cartas obliga a elegir entre:
+
+| Estrategia | Cómo | Costo |
+|---|---|---|
+| **A. Reemplazar ranuras** (probado, garantizado) | Escribir el contenido nuevo en el índice de una carta existente (planF) | Se pierden las cartas sacrificadas: para 18 cartas, 18 ranuras que elegís vos |
+| **B. Insertar en orden + remapear** | Insertar el registro en la posición que le toca por CardID y subir en 1 el `IntID` de todas las posteriores | Las 18 últimas cartas (CardID más alto) salen del rango 2480 y desaparecerían |
+| **C. Subir el límite por código** | Parchear el límite hardcodeado en los módulos (`libcardalbum.prx` tiene `slti a3, v0, 2480`; los `gmodule/*.prx` son ELF sin cifrar, parcheables en el lugar) | Más ingeniería (leer MIPS), pero **no se pierde ninguna carta** |
+
+La A y la B cuestan 18 cartas reales; la C costaría tiempo. A es la única ya probada punta a
+punta.
