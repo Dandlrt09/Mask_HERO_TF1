@@ -4,9 +4,15 @@ Objetivo: validar el pipeline de datos completo (ID libre + Prop + Genre + IntID
 nombre + arte) **sin escribir una línea de ARM**. Estrategia del proyecto: probar
 primero lo barato; si los datos se leen, el 80% del trabajo de puerto queda resuelto.
 
-Estado: **copia de prueba Plan B construida y verificada por ida y vuelta; pendiente la
-prueba en PPSSPP** (la corre el usuario; yo no manejo el emulador desde acá). El ISO
-original no se toca: se parchea una copia, `trabajo/TF1-E1-test-planB.iso`.
+Estado: **copia de prueba Plan B reconstruida para la base en ESPAÑOL y verificada por
+ida y vuelta; pendiente la prueba en PPSSPP** (la corre el usuario; yo no manejo el
+emulador desde acá). El ISO original no se toca: se parchea una copia,
+`trabajo/TF1-E1-test-planB.iso`.
+
+> **Idioma (error corregido en L10).** El juego del usuario está en **español**, así que
+> carga `cardinfo_spa.ehp` y el arte `cardh_s.cip`/`cardm_s.cip`. La primera copia estaba
+> parcheada en inglés: el juego la ignoró por completo. No se concluyó nada (la canaria lo
+detectó). Ahora `tools/e1_patch_iso.py` toma `--lang` (por defecto `spa`).
 
 ---
 
@@ -87,6 +93,7 @@ El usuario contestó que el álbum **sólo lista las cartas que tiene**, así qu
 | T5 | Construir la copia de prueba y verificar la relectura | hecho — ver §Verificación |
 | T6 | Prueba en PPSSPP (usuario) y registro del resultado | **pendiente (bloqueado por el test del emulador)** |
 | T7 | Plan B: `--repoint` / `--desc` / `--also-map` en las herramientas + protocolo nuevo | hecho — ver §Verificación |
+| T8 | `--lang` en `e1_patch_iso.py` y reconstrucción para la base en español | hecho — ver §Verificación |
 
 ## Slices (límites de commit)
 
@@ -98,6 +105,9 @@ El usuario contestó que el álbum **sólo lista las cartas que tiene**, así qu
 - **S3** `feat(e1-test): observe the appended record through an owned card` → Plan B:
   `--also-map` / `--desc` en `cardinfo_add.py`, `--repoint` en `e1_patch_iso.py`, y las
   secciones nuevas de este documento.
+- **S4** `feat(e1-test): patch the card database of the game's actual language` → `--lang`
+  en `e1_patch_iso.py` + este documento (el primer intento parcheó inglés y el juego
+  ignoró todo).
 
 Siguiente límite natural: el resultado de T6 (prueba en PPSSPP) abre o cierra E1-test
 antes de cualquier otro commit.
@@ -123,9 +133,12 @@ empieza en el sector siguiente).
 
 Ida y vuelta por el ISO parcheado, leído de nuevo con las herramientas de sólo lectura:
 
-- `cardinfo_eng.ehp` dentro del ISO: **1019768 bytes**, `sha256` idéntico al construido
-  (`2c0435e4…e90e9e`), extent 329052, registro de directorio en 71776 con el tamaño nuevo,
-  techo 1019904 (152 de 288 bytes de hueco usados).
+- `cardinfo_spa.ehp` dentro del ISO: **1125368 bytes**, `sha256` idéntico al construido
+  (`2167bb5b…e5263`), techo 1126400 (152 de los 1184 bytes de hueco disponibles), leído de
+  vuelta desde el ISO parcheado.
+- Las mismas medidas en la base en español: índice interno 2480 nuevo, `name_off=98832`,
+  `desc_off=892032`, `Indx` con 2482 entradas y los mismos índices internos que en inglés
+  (4047→41, 4453→447, 5759→1574), 472 IDs libres empezando en 4661.
 - Carta nueva 4661: `exist=True`, índice interno 2480, ATK 4900, DEF 1200, nivel 4,
   `name='E1 TEST CARD'`, `desc_off=801952`, `genre=000000000000`, arte = entrada de la donante.
 - Plan B: CardID **4453** (Giant Red Seasnake) lee el mismo registro 2480 →
@@ -145,26 +158,26 @@ Ver `trabajo/TF1-E1-test-planB.iso`. Es una copia del ISO con los datos parchead
 > Windows** (casi seguro el emulador abierto con ese archivo) y no se pudo reescribir.
 > Esa copia **no** tiene el Plan B: no sirve para este test.
 
-1. Cargá `trabajo/TF1-E1-test-planB.iso` en PPSSPP, **en inglés**, y **empezá desde una
-   pantalla nueva del juego** — no cargues un save state viejo: los save states pisan
-   toda la RAM y darían un falso negativo.
-2. **Canaria de carga:** en tu deck está **Gagagigo** (lo probó E3). Tiene que mostrar
-   **ATK 4850** en vez de 1850. Si ves 1850, el EHP parcheado no se cargó y el test no
-   dice nada: pará y avisá.
-3. **La carta nueva:** la ranura de tu deck (y del editor) que era **Giant Red Seasnake**
-   ahora tiene que leerse como **`E1 TEST CARD`**, ATK **4900**, DEF 1200, nivel 4,
-   **con el arte y la descripción de Celtic Guardian** en vez de la serpiente.
-   Ese nombre, esa descripción, ese ATK y ese DEF salen del **registro appendado en el
-   índice interno 2480**, que antes no existía. Si podés, invocala en un duelo: el arte
-   de campo también tiene que ser el elfo.
+1. Cargá `trabajo/TF1-E1-test-planB.iso` en PPSSPP **con el juego en la misma lengua que
+   ya usás (español)** y **empezá desde una pantalla nueva del juego** — no cargues un save
+   state viejo: los save states pisan toda la RAM y darían un falso negativo.
+2. **Canaria de carga:** en tu deck está **GAGAGIGO** (el usuario la ve: "GAGAGIGO
+   ATK/1850 DEF/1000" en sus capturas). Tiene que mostrar **ATK 4850** en vez de 1850.
+   Si ves 1850, el contenedor parcheado no se cargó y el test no dice nada: pará y avisá.
+3. **La carta nueva:** la ranura de tu deck (y del editor) que era **RED SEASNAKE DEL
+   GIGANTE** ahora tiene que leerse como **`E1 TEST CARD`**, ATK **4900**, DEF 1200,
+   nivel 4, **con el arte y la descripción de "Guardián Celta" (CardID 4047)** en vez de
+   la serpiente. Ese nombre, esa descripción, ese ATK y ese DEF salen del **registro
+   appendado en el índice interno 2480**, que antes no existía. Si podés, invocala en un
+   duelo: el arte de campo también tiene que ser el elfo.
 4. Resultado según lo que pase:
 
 | Resultado | Lectura |
 |---|---|
 | La ranura se lee `E1 TEST CARD` (nombre + ATK 4900 + arte nuevo) | el motor lee registros appendados: **pipeline de datos validado** y la Q2 de E0 se responde SÍ |
-| La canaria se ve (4850) pero la ranura sigue siendo Giant Red Seasnake | el EHP se lee, pero el motor no acepta índices fuera de rango: agregar cartas sólo con datos no alcanza |
+| La canaria se ve (4850) pero la ranura sigue siendo la serpiente | el EHP se lee, pero el motor no acepta índices fuera de rango: agregar cartas sólo con datos no alcanza |
 | La ranura aparece **vacía / en blanco / crashea** al mostrarla | el motor leyó algo pero no le gustó; causa más probable: el `card_id` del `Prop` del registro dice 4661 y no 4453. **Plan C:** reconstruir con `card_id = 4453` |
-| No aparece ni la canaria | el EHP parcheado no se cargó (o el juego no está en inglés): revisar el reemplazo del archivo en el ISO |
+| **La canaria sigue en 1850** | el juego está cargando **otro idioma**: mirar en qué lengua está la interfaz y reconstruir con ese `--lang` (esto es lo que pasó en el primer intento: el juego en español ignoró por completo el parche en inglés) |
 
 ### Por qué NO usar un código AR de "todas las cartas"
 
@@ -216,3 +229,11 @@ tiene** Celtic Guardian → el canal "lista completa" no existe y la canaria ori
   declinada ⇒ se aplica el camino por riesgo, y ningún ítem de riesgo alto se escaló).
   El `nativeRisk: high` con evidencia `process_boundary` es un falso positivo del
   heurístico: esas herramientas no lanzan procesos.
+- **L10** (incidente de idioma): el usuario probó `TF1-E1-test-planB.iso` y mandó dos
+  capturas: la interfaz y las cartas están **en español** ("GAGAGIGO ATK/1850 DEF/1000",
+  "RED SEASNAKE DEL GIGANTE", "Deck personal") → el juego carga `cardinfo_spa.ehp`, así que
+  el parche en inglés no se vio y **la canaria (1850) lo detectó**: sin canaria habríamos
+  concluido en falso que el motor no lee registros appendados. Corregido: `--lang` en la
+  herramienta, copia reconstruida para español (`cardinfo_spa.ehp` 1125368 bytes,
+  `cardh_s.cip`/`cardm_s.cip`). Medición del contenedor español: mismas 2480 cartas, mismos
+  índices internos, 472 IDs libres, `Indx` con 2482 entradas, hueco de 1184 bytes.
