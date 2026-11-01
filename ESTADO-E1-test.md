@@ -118,7 +118,24 @@ El usuario contestó que el álbum **sólo lista las cartas que tiene**, así qu
 | T6 | Prueba en PPSSPP (usuario) y registro del resultado | **hecho — POSITIVO**: canaria GAGAGIGO 4850 y la ranura 4453 leída como `E1 TEST CARD` ATK 4900 |
 | T7 | Plan B: `--repoint` / `--desc` / `--also-map` en las herramientas + protocolo nuevo | hecho — ver §Verificación |
 | T8 | `--lang` en `e1_patch_iso.py` y reconstrucción para la base en español | hecho — ver §Verificación |
-| T9 | Explicar el ícono rojo de «no permitido» sobre la carta nueva (¿legalidad de deck?) | **pendiente** — Plan C si es el `card_id` del `Prop` |
+| T9 | Explicar el ícono rojo de «no permitido» sobre la carta nueva (¿legalidad de deck?) | **pendiente** — Plan C ya construido: `trabajo/TF1-E1-test-planC.iso` |
+
+### T9 — Plan C (experimento de una sola variable)
+
+Hipótesis: el aviso «no permitido» del editor de deck sale del **chequeo de propiedad**, y ese
+chequeo lee el `card_id` que está **dentro del registro** (4661), no el ID de la ranura
+(4453). El save del usuario posee 4453, no 4661.
+
+`trabajo/TF1-E1-test-planC.iso` es idéntico al planB **salvo un campo**:
+
+| Copia | `Prop.card_id` del registro | `prop1` del registro | `IntID[4453]` | `IntID[4661]` |
+|---|---|---|---|---|
+| planB | 4661 | 2654818869 | 2480 | 2480 |
+| **planC** | **4453** | **2654818661** | 2480 | 2480 |
+
+La diferencia entre los `prop1` es **208 = 4661 − 4453**: exactamente el campo `card_id`,
+nada más. Si con planC el ícono desaparece, la regla queda identificada; si sigue, la causa
+es otra y hay que buscarla en el chequeo de legalidad del deck (no en la propiedad).
 
 ## Slices (límites de commit)
 
