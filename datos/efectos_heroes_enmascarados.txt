@@ -1,0 +1,200 @@
+YU-GI-OH! — HÉROE ENMASCARADO
+Lista de efectos de los monstruos y las cuatro cartas mágicas
+Incluye HÉROE del Contraste Chaos
+
+NOTA
+Los efectos están resumidos en español. Para jugar en torneos, consulta el texto oficial de la carta, ya que las traducciones y erratas pueden variar.
+Revisado contra el texto oficial impreso. Ver la sección REVISIÓN al final.
+
+============================================================
+1. MONSTRUOS HÉROE ENMASCARADO
+============================================================
+
+MONSTRUOS DE FUSIÓN
+
+1. HÉROE Enmascarado Ácido
+Atributo: AGUA
+Nivel: 8
+ATK/DEF: 2600/2100
+- Al ser Invocado de Modo Especial, destruye todas las Mágicas y Trampas que controle el adversario.
+- Si destruye alguna de esas cartas, todos los monstruos del adversario pierden 300 ATK.
+
+2. HÉROE Enmascarado Anki
+Atributo: OSCURIDAD
+Nivel: 8
+ATK/DEF: 2800/1200
+- Puede atacar directamente, pero el daño de batalla que inflige mediante ese ataque se reduce a la mitad.
+- Si destruye un monstruo del adversario en batalla y lo manda al Cementerio, puedes añadir a tu mano una Mágica de Juego Rápido «Cambio/a» de tu Deck.
+- El efecto de búsqueda solo puede utilizarse una vez por turno.
+
+3. HÉROE Enmascarado Blast
+Atributo: VIENTO
+Nivel: 6
+ATK/DEF: 2200/1800
+- Cuando es Invocado de Modo Especial, puedes seleccionar un monstruo boca arriba que controle el adversario; ese monstruo pierde la mitad de su ATK actual.
+- Una vez por turno, como Efecto Rápido, puedes pagar 500 LP y después seleccionar una Mágica o Trampa que controle el adversario; devuélvela a la mano.
+
+4. HÉROE Enmascarado Dark Law
+Atributo: OSCURIDAD
+Nivel: 6
+ATK/DEF: 2400/1800
+- Cualquier carta que fuera a ser mandada al Cementerio del adversario se destierra en su lugar.
+- Una vez por turno, si el adversario añade una o más cartas de su Deck a su mano, excepto durante la Draw Phase o el Damage Step, puedes desterrar una carta aleatoria de su mano.
+
+5. HÉROE Enmascarado Dian
+Atributo: TIERRA
+Nivel: 8
+ATK/DEF: 2800/3000
+- Si destruye un monstruo del adversario en batalla y lo manda al Cementerio, puedes Invocar de Modo Especial desde tu Deck un monstruo HÉROE de Nivel 4 o menor.
+
+6. HÉROE Enmascarado Divine Wind
+Atributo: VIENTO
+Nivel: 8
+ATK/DEF: 2700/1900
+- No puede ser destruido en batalla.
+- El adversario sólo puede atacar con 1 monstruo durante cada Battle Phase.
+- Cuando destruye un monstruo del adversario en batalla y lo manda al Cementerio, puedes robar una carta.
+
+7. HÉROE Enmascarado Goka
+Atributo: FUEGO
+Nivel: 6
+ATK/DEF: 2200/1800
+- Gana 100 ATK por cada monstruo HÉROE que tengas en tu Cementerio.
+
+8. HÉROE Enmascarado Koga
+Atributo: LUZ
+Nivel: 8
+ATK/DEF: 2500/1800
+- Gana 500 ATK por cada monstruo que controle el adversario.
+- Una vez por turno, durante el turno de cualquiera de los jugadores, puedes desterrar un monstruo HÉROE de tu Cementerio y después seleccionar un monstruo boca arriba en el Campo (de cualquiera de los dos jugadores); ese objetivo pierde ATK igual al ATK del monstruo desterrado, hasta el final de este turno.
+
+9. HÉROE Enmascarado Vapor
+Atributo: AGUA
+Nivel: 6
+ATK/DEF: 2400/2000
+- No puede ser destruido por efectos de cartas.
+
+10. HÉROE Enmascarado Atómico
+Atributo: FUEGO
+Nivel: 8
+ATK/DEF: 2600/2000
+- La primera vez cada turno que fuera a ser destruido en batalla o por el efecto de una carta, no es destruido.
+- Al ser Invocado de Modo Especial, puedes Invocar desde tu Cementerio o destierro, en Posición de Defensa, un HÉROE Enmascarado que no sea de FUEGO, ignorando sus condiciones de Invocación.
+- Durante tu End Phase, puedes Colocar una Mágica de Juego Rápido «Cambio/a» desde tu Cementerio.
+
+MONSTRUOS DE EFECTO DEL DECK PRINCIPAL
+
+11. HÉROE Enmascarado Cuervo del Crepúsculo
+Atributo: OSCURIDAD
+Nivel: 4
+ATK/DEF: 1200/1000
+- Desde tu mano, puedes desterrar un monstruo HÉROE de tu Cementerio para Invocarlo de Modo Especial.
+- Si es Invocado de Modo Normal o Especial, puedes añadir a tu mano otro HÉROE Enmascarado desde tu Deck o Cementerio, excepto otra copia de esta carta.
+
+12. HÉROE Enmascarado Horno
+Atributo: FUEGO
+Nivel: 7
+ATK/DEF: 2200/1000
+- Puedes mostrarlo en tu mano para añadir «Cambio de Máscara» o «Polimerización» desde tu Deck y después descartar una carta.
+- Si Invocas de Modo Especial un monstruo de Fusión HÉROE que no sea de FUEGO, puedes Invocar esta carta desde tu Cementerio o mano; destiérrala cuando deje el Campo.
+- El primer efecto limita las Invocaciones Especiales desde el Deck Extra ese turno a monstruos HÉROE. Cada efecto se usa una vez por turno.
+
+13. HÉROE Enmascarado Fuente (Fountain)
+Atributo: AGUA
+Nivel: 4
+ATK/DEF: 1000/1400
+- Puedes mostrarlo en tu mano para Invocar de Modo Especial un monstruo HÉROE desde tu mano en Posición de Defensa.
+- Si es mandado al Cementerio por el efecto de una carta o para activar un efecto de carta, puedes Colocar «Cambio de Máscara» desde tu Deck o Cementerio.
+- Cada efecto se usa una vez por turno.
+
+============================================================
+2. HÉROE DEL CONTRASTE CHAOS
+============================================================
+
+HÉROE del Contraste Chaos
+Atributos: OSCURIDAD / LUZ
+Nivel: 9
+ATK/DEF: 3000/2600
+Materiales de Fusión: 2 monstruos «HÉROE Enmascarado».
+
+- Nombre alternativo: siempre se trata como una carta «HÉROE Elemental».
+- Doble atributo: mientras esté boca arriba en el Campo, también se considera de atributo LUZ, además de OSCURIDAD.
+- Negación de efectos: una vez por turno, durante el turno de cualquiera de los jugadores, puedes seleccionar una carta boca arriba en el Campo y negar sus efectos hasta el final del turno.
+- Restricción de Invocación: debe ser Invocado por Fusión y no puede ser Invocado de Modo Especial de otra forma.
+
+Nota: el efecto de negación es un Efecto Rápido. No destruye la carta seleccionada; niega sus efectos hasta el final del turno.
+
+============================================================
+3. LAS CUATRO CARTAS MÁGICAS
+============================================================
+
+1. Cambio de Máscara
+Tipo: Mágica de Juego Rápido
+- Selecciona un monstruo HÉROE que controles y mándalo al Cementerio.
+- Después, si dejó el Campo por este efecto, Invoca de Modo Especial desde tu Deck Extra un HÉROE Enmascarado del mismo atributo que tenía ese monstruo en el Campo.
+Ejemplo: un HÉROE de OSCURIDAD puede transformarse en Dark Law o Anki.
+
+2. Cambio de Máscara II
+Tipo: Mágica de Juego Rápido
+- Descarta una carta y selecciona un monstruo boca arriba que controles que tenga Nivel.
+- Manda ese monstruo al Cementerio e Invoca de Modo Especial desde tu Deck Extra un HÉROE Enmascarado del mismo atributo, pero de Nivel mayor que el que tenía ese monstruo.
+- El monstruo seleccionado no tiene que ser un HÉROE, pero el descarte es obligatorio.
+- Sólo puedes activar 1 «Cambio de Máscara II» por turno.
+
+3. Cambio de Forma
+Tipo: Mágica de Juego Rápido
+- Selecciona un monstruo de Fusión HÉROE que controles y devuélvelo al Deck Extra.
+- Después, Invoca de Modo Especial desde tu Deck Extra un HÉROE Enmascarado del mismo Nivel que el monstruo devuelto, pero con nombre distinto.
+- No exige que ambos monstruos tengan el mismo atributo.
+
+4. Carga de Máscara (Mask Charge)
+Tipo: Mágica Normal
+- Selecciona un monstruo HÉROE y una Mágica de Juego Rápido «Cambio/a» en tu Cementerio.
+- Añade ambas cartas a tu mano.
+- Aclaración: la carta aparece como «Carga de Máscara»; no «Recarga de Máscara».
+
+============================================================
+4. DIFERENCIAS RÁPIDAS ENTRE LAS MÁGICAS
+============================================================
+
+- Cambio de Máscara: transforma un HÉROE en un HÉROE Enmascarado del mismo atributo.
+- Cambio de Máscara II: descarta una carta y transforma un monstruo boca arriba (con Nivel) en un HÉROE Enmascarado del mismo atributo y de Nivel mayor.
+- Cambio de Forma: cambia un HÉROE de Fusión por un HÉROE Enmascarado del mismo Nivel, con nombre distinto.
+- Carga de Máscara: recupera un monstruo HÉROE y una Mágica de Juego Rápido «Cambio/a» del Cementerio.
+
+============================================================
+REVISIÓN
+============================================================
+
+Correcciones aplicadas (verificadas contra el texto oficial impreso):
+
+1. Dark Law: el Nivel es 6, no 8. Importa porque «Cambio de Máscara II» y «Cambio de Forma» buscan por Nivel.
+2. Koga: gana 500 ATK por cada monstruo del adversario, no 100. Su segundo efecto puede seleccionar un monstruo boca arriba de cualquiera de los dos jugadores, no sólo del adversario; dura hasta el final del turno.
+3. Anki: se eliminó la cláusula «excepto Caja de Cambios Dorada», que no existe en el texto oficial. La búsqueda no tiene excepciones.
+4. Cambio de Máscara II: faltaba «de Nivel mayor» y la restricción de 1 activación por turno.
+5. Cambio de Forma: faltaba «pero con nombre distinto».
+6. Blast: el segundo efecto cuesta 500 LP.
+7. Divine Wind: faltaba «el adversario sólo puede atacar con 1 monstruo durante cada Battle Phase».
+
+Notas para el port (agregadas, no son correcciones de texto):
+
+- Divine Wind y Koga son los dos únicos Nomi duros del grupo: «no puede ser Invocado de Modo Especial de otra forma que no sea Cambio de Máscara». Relevante para el efecto de Atómico, ya que revivir ignorando condiciones de Invocación es justo lo que permite recuperar a esos dos.
+- Cambio de Máscara no es una Invocación por Fusión y no puede activarse durante el Damage Step.
+- Cambio de Forma busca por Nivel, no por atributo. Cambio de Máscara busca por atributo. Cambio de Máscara II busca por atributo y Nivel mayor. Son tres predicados distintos.
+
+============================================================
+FUENTES Y REFERENCIAS
+============================================================
+
+Wiki compartida:
+https://yugioh.fandom.com/es/wiki/H%C3%89ROE_Enmascarado
+
+Páginas relacionadas:
+https://yugioh.fandom.com/es/wiki/Cambio_de_M%C3%A1scara_II
+https://yugioh.fandom.com/es/wiki/Cambio_de_Forma
+https://yugioh.fandom.com/es/wiki/Carga_de_M%C3%A1scara
+
+Verificación de textos: base de datos de YGOPRODeck (db.ygoprodeck.com/api/v7/cardinfo.php), que refleja el texto oficial impreso.
+
+IMPORTANTE:
+Este archivo reúne los efectos resumidos de la lista anterior. Verifica los textos con la base de datos oficial de Yu-Gi-Oh! antes de utilizarlos como referencia competitiva, especialmente los nombres, estadísticas y condiciones exactas de las cartas.
