@@ -239,6 +239,47 @@ Ver `trabajo/TF1-E1-test-planB.iso`. Es una copia del ISO con los datos parchead
 | La ranura aparece **vacía / en blanco / crashea** al mostrarla | el motor leyó algo pero no le gustó; causa más probable: el `card_id` del `Prop` del registro dice 4661 y no 4453. **Plan C:** reconstruir con `card_id = 4453` |
 | **La canaria sigue en 1850** | el juego está cargando **otro idioma**: mirar en qué lengua está la interfaz y reconstruir con ese `--lang` (esto es lo que pasó en el primer intento: el juego en español ignoró por completo el parche en inglés) |
 
+### T9 — La carta nueva es rechazada como «Forbidden Card»
+
+El diálogo del juego (L13) es explícito: *«Since "E1 TEST CARD" is a Forbidden Card, it
+cannot be added to your Deck»*. Y al abrir el editor de deck el juego **obliga a quitar** la
+carta: el ícono rojo no es cosmético, es un validador de legalidad real.
+
+Estado de la investigación del validador:
+
+| Pieza | Hallazgo |
+|---|---|
+| `database/limitlist.ehp` | **Sólo la UI** de la pantalla «Lista de Cartas Prohibidas/Limitadas» (ventanas + `strTbl_s.bin` con esos textos). La lista de datos no está ahí |
+| `gmodule/libdeck.prx` | Es el módulo que valida el deck y **es un ELF sin cifrar** (`7f 45 4c 46`). El frente ARM es más accesible de lo que creía E0: el `EBOOT.BIN` está cifrado, los módulos de `gmodule/` no |
+| `CARD_Top_S.bin` | **Índice alfabético** (la primera carta de cada letra). Misterio resuelto: `TFCardEditGUI` lo listaba como desconocido |
+| `database/cardalbum.ehp` | Sólo UI del álbum: **no hay una tercera fuente de arte**, el arte sigue saliendo de `cardh_s`/`cardm_s` |
+
+**Experimento de control (planD).** Para separar «el motor rechaza lo que *dice* la carta»
+de «el motor rechaza que los datos *vengan de otro índice*»: el registro del índice 2480 es
+una **copia byte a byte** del registro de «Red Seasnake del gigante» (mismo `card_id` 4453,
+`name_off` 16276, `desc_off` 85736, ATK 1800/DEF 800, mismo genre y password, arte sin
+tocar). La única diferencia es el índice. Verificado por relectura del ISO:
+`cardinfo_spa.ehp` 1125244 bytes, `sha256` idéntico, crecimiento 28 bytes.
+
+| Resultado de planD | Lectura |
+|---|---|
+| Se puede agregar al deck, sin ícono | El índice nuevo no es el problema: el rechazo lo dispara algún campo modificado |
+| Sigue diciendo *Forbidden Card* | El rechazo viene del índice/registro appendado → toca leer `libdeck.prx` |
+
+### Revisión nativa del modo `--clone` (L14)
+
+La revisión por lentes terminó en un **cierre con escalamiento**:
+
+- `state: escalated`, `action: review completed with inconclusive severe findings;
+  maintainer action is informational`
+- `escalation: {cause: unknown_causality, finding_ids: ["R3-1"]}` (lente de confiabilidad)
+- 2 revisores preparados y 2 enviados (`review-risk`, `review-reliability`), por relay del host
+
+No pude leer el texto del hallazgo `R3-1` desde acá (vive en el store nativo): queda como
+nota informativa para el mantenedor. La única blandura que veo por mi lado en ese diff es que
+`(name or "")` escribe un nombre vacío en silencio si se llama sin `--name` y sin
+`--copy-strings`; endurecerlo es una línea, pero abre un candidato de revisión nuevo.
+
 ### Por qué NO usar un código AR de "todas las cartas"
 
 1. **Rompe la atribución.** El test existe para distinguir "el motor leyó nuestro
@@ -304,3 +345,17 @@ tiene** Celtic Guardian → el canal "lista completa" no existe y la canaria ori
   2480.`, con X4 copias. **T6 cerrado en positivo.** Observación: sobre esa carta aparece
   el ícono rojo de «no permitido» (y el contador «Kind of possession card» bajó de 35 a 34
   entre las dos pruebas: puede ser el deck del usuario, no se investigó).
+- **L12** (usuario, textual): «Si arranca el duelo siempre y cuando no revise mi deck ya que
+  si hago eso me obliga a quitar la carta, dentro del duelo no me ha salido la carta en mano
+  pero el npc logró invocarlo normalmente y si esta estable». → El duelo arranca y es
+  estable, el NPC **invocó** la carta (su mazo referencia CardID 4453 y el repunte es global),
+  y el editor de deck **obliga a quitarla**. Pidió cerrar el emulador: sí.
+- **L13** (usuario, capturas): el juego muestra *«Since "E1 TEST CARD" is a Forbidden Card,
+  it cannot be added to your Deck»* y el ícono rojo está **sobre la carta nueva**. Arranca la
+  investigación del validador de legalidad: `limitlist.ehp` es sólo UI, `libdeck.prx` es un
+  ELF sin cifrar, `CARD_Top` es el índice alfabético, `cardalbum.ehp` es UI del álbum.
+  Sin responder: si esas capturas eran de planB o de planC.
+- **L14** (recibo de revisión): la revisión nativa de las 2 lentes cerró con
+  `native-last-event-closure`, `state: escalated`, hallazgo severo `R3-1` de **causalidad
+  indeterminada** (`unknown_causality`) y acción de mantenedor **informativa**; el texto del
+  hallazgo no es legible desde el cliente.

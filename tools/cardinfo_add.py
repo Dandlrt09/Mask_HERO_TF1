@@ -120,12 +120,16 @@ def describe(data: bytes, card_id: int, base: int = CARD_ID_BASE) -> dict:
     return info
 
 
-def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str,
+def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str | None = None,
              desc: str | None = None, atk: int | None = None, dfn: int | None = None,
-             level: int | None = None,
+             level: int | None = None, copy_strings: bool = False,
              canaries: tuple[tuple[int, int], ...] = (),
              also_map: tuple[int, ...] = (),
              base: int = CARD_ID_BASE) -> tuple[bytes, dict]:
+    """`copy_strings` makes the new record an exact clone of the donor's record
+    (same name and description offsets), which is the control experiment: the card
+    reads identically, the only difference is that its data is served from the new
+    internal index."""
     """Append one new card and optionally patch ATK canaries on existing cards.
 
     `also_map` additionally points other CardIDs at the appended record, which is
@@ -144,7 +148,8 @@ def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str,
 
     donor_idx = internal_id(bytes(intid), donor_card_id, base)
     p1, p2 = struct.unpack_from("<II", prop, donor_idx * 8)
-    donor_desc_off = struct.unpack_from("<II", bodies[indx_entry.name], donor_idx * 8)[1]
+    donor_name_off, donor_desc_off = struct.unpack_from("<II", bodies[indx_entry.name],
+                                                        donor_idx * 8)
 
     new_p1 = (p1 & ~CARD_ID_MASK) | (card_id & CARD_ID_MASK) | EXIST_BIT
     if atk is not None:
@@ -184,22 +189,25 @@ def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str,
     bodies[sort_entry.name] = sort_entry.body[:idx * 2] + sort_entry.body[donor_idx * 2:donor_idx * 2 + 2]
 
     names_entry = region(entries, "CARD_Name")
-    name_off = len(names_entry.body)
-    encoded = name.encode("utf-16-le") + b"\x00\x00"
-    bodies[names_entry.name] = names_entry.body + encoded
-    report.update(name_off=name_off, name_bytes=len(encoded))
-
     descs_entry = region(entries, "CARD_Desc")
-    if desc is None:
-        desc_off = donor_desc_off
+    if copy_strings:
+        name_off, desc_off = donor_name_off, donor_desc_off
+        report.update(name_off=name_off, desc_off=desc_off,
+                      strings="copied from donor (control)")
     else:
-        desc_off = len(descs_entry.body)
-        desc_bytes = desc.encode("utf-16-le") + b"\x00\x00"
-        bodies[descs_entry.name] = descs_entry.body + desc_bytes
-        report.update(desc_off=desc_off, desc_bytes=len(desc_bytes),
-                      desc_of_donor=donor_desc_off)
-    if desc is None:
-        report["desc_off"] = desc_off
+        name_off = len(names_entry.body)
+        encoded = (name or "").encode("utf-16-le") + b"\x00\x00"
+        bodies[names_entry.name] = names_entry.body + encoded
+        report.update(name_off=name_off, name_bytes=len(encoded))
+        if desc is None:
+            desc_off = donor_desc_off
+            report["desc_off"] = desc_off
+        else:
+            desc_off = len(descs_entry.body)
+            desc_bytes = desc.encode("utf-16-le") + b"\x00\x00"
+            bodies[descs_entry.name] = descs_entry.body + desc_bytes
+            report.update(desc_off=desc_off, desc_bytes=len(desc_bytes),
+                          desc_of_donor=donor_desc_off)
 
     bodies[indx_entry.name] = (indx_entry.body[:idx * 8]
                                + struct.pack("<II", name_off, desc_off)
@@ -232,6 +240,7 @@ def main(argv: list[str]) -> int:
     canaries: list[tuple[int, int]] = []
     also_map: list[int] = []
     desc = None
+    copy_strings = False
     card_id = donor = None
     name = None
     i = 3
@@ -247,6 +256,8 @@ def main(argv: list[str]) -> int:
             opts["dfn" if a == "--def" else a[2:]] = int(argv[i + 1]); i += 2
         elif a == "--desc":
             desc = argv[i + 1]; i += 2
+        elif a == "--copy-strings":
+            copy_strings = True; i += 1
         elif a == "--canary":
             cid, catk = argv[i + 1].split(":")
             canaries.append((int(cid), int(catk))); i += 2
@@ -258,7 +269,8 @@ def main(argv: list[str]) -> int:
             raise SystemExit(f"unknown option {a}")
     data = open(src, "rb").read()
     out, report = add_card(data, card_id=card_id, donor_card_id=donor, name=name,
-                           desc=desc, canaries=tuple(canaries),
+                           desc=desc, copy_strings=copy_strings,
+                           canaries=tuple(canaries),
                            also_map=tuple(also_map), **opts)
     with open(dst, "wb") as f:
         f.write(out)

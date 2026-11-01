@@ -69,9 +69,9 @@ def cip_slot(blob: bytes, card_id: int) -> int:
 
 
 def build(src: str, dst: str, *, card_id: int, donor: int, name: str,
-          desc: str | None, atk: int, level: int,
+          desc: str | None, atk: int | None, level: int | None,
           canaries: tuple[tuple[int, int], ...], repoints: tuple[int, ...],
-          lang: str) -> int:
+          lang: str, clone: bool = False) -> int:
     ehp_path, art_paths = lang_paths(lang)
     print(f"--- language: {lang} -> {ehp_path}")
     if not art_paths:
@@ -80,7 +80,7 @@ def build(src: str, dst: str, *, card_id: int, donor: int, name: str,
     ehp = iso_replace.read_iso_file(src, ehp_path)
     new_ehp, report = cardinfo_add.add_card(
         ehp, card_id=card_id, donor_card_id=donor, name=name, desc=desc, atk=atk,
-        level=level, canaries=canaries, also_map=repoints)
+        level=level, canaries=canaries, also_map=repoints, copy_strings=clone)
     for k, v in report.items():
         print(f"    {k}: {v}")
 
@@ -129,7 +129,11 @@ def build(src: str, dst: str, *, card_id: int, donor: int, name: str,
     for cid, catk in canaries:
         print(f"  canary: CardID {cid} must show ATK {catk}")
     for cid in repoints:
-        print(f"  card {cid} must now read as {name!r}, ATK {atk}, level {level}")
+        if clone:
+            print(f"  card {cid} must now read EXACTLY like the donor ({donor}): "
+                  "no visible change, only the internal index differs")
+        else:
+            print(f"  card {cid} must now read as {name!r}, ATK {atk}, level {level}")
     return 0
 
 
@@ -141,6 +145,7 @@ def main(argv: list[str]) -> int:
     desc: str | None = None
     canaries: tuple[tuple[int, int], ...] = ()
     repoints: tuple[int, ...] = ()
+    clone = False
     i = 1
     while i < len(argv):
         a = argv[i]
@@ -165,6 +170,8 @@ def main(argv: list[str]) -> int:
             canaries = canaries + ((int(cid), int(catk)),); i += 2
         elif a == "--repoint":
             repoints = repoints + (int(argv[i + 1]),); i += 2
+        elif a == "--clone":
+            clone = True; i += 1
         elif a == "--lang":
             lang = argv[i + 1]; i += 2
         elif a == "--no-canary":
@@ -173,9 +180,12 @@ def main(argv: list[str]) -> int:
             raise SystemExit(f"unknown option {a}")
     if len(argv) > 1 and not os.path.exists(src):
         raise SystemExit(f"source ISO not found: {src}")
+    if clone:
+        # control experiment: an exact clone of the donor's record, no overrides
+        desc, atk, level = None, None, None
     return build(src, dst, card_id=card_id, donor=donor, name=name, desc=desc,
                  atk=atk, level=level, canaries=canaries, repoints=repoints,
-                 lang=lang)
+                 lang=lang, clone=clone)
 
 
 if __name__ == "__main__":
