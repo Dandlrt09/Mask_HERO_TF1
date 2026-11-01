@@ -137,6 +137,24 @@ La diferencia entre los `prop1` es **208 = 4661 − 4453**: exactamente el campo
 nada más. Si con planC el ícono desaparece, la regla queda identificada; si sigue, la causa
 es otra y hay que buscarla en el chequeo de legalidad del deck (no en la propiedad).
 
+#### Hallazgos de la prueba con planB (L12)
+
+1. **El duelo arranca** con el deck tal como quedó guardado, y dentro del duelo la carta
+   nueva es **estable** (no crashea).
+2. **El NPC invocó `E1 TEST CARD` sin problemas.** No es magia: el mazo del NPC contiene
+   **CardID 4453** («Red Seasnake del gigante») y el repunte `IntID[4453] → 2480` es
+   **global por CardID**, así que cualquier mazo del juego que use esa carta pasa a jugar
+   nuestro registro. Comprobado: `PSP_GAME/USRDIR/deck/all_s.ehp` (2.507.168 bytes, los
+   recipes de mazos) contiene **6 referencias a CardID 4453** como `u16`. Además, que el
+   NPC la haya **invocado** prueba que el motor puede concretar la invocación de un
+   registro appendado dentro de un duelo. Implicación para el puerto real: usar **CardID
+   libres** (4661+), que ningún mazo ni recipe referencia, evita exactamente este efecto
+   colateral.
+3. **Si se abre el editor de deck, el juego obliga a quitar la carta.** El validador de
+   legalidad la rechaza: el ícono rojo **no es cosmético**. Esto es un bloqueo real para el
+   puerto: si las 18 cartas nuevas no pasan ese validador, el jugador no puede meterlas en
+   un deck. Hay que resolverlo (T9) antes de armar las 18.
+
 ## Slices (límites de commit)
 
 - **S1** `feat(tools): append-card rebuild and ISO file replacement` →
