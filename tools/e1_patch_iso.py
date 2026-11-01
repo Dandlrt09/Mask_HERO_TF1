@@ -11,7 +11,12 @@ Everything happens on a COPY (`dst`); the source ISO is only ever read.
   3. alias the artwork: copy the donor CardID's 8-byte slot in
      PSP_GAME/USRDIR/card/cardh_e.cip and cardm_e.cip into the new CardID's slot
      (a free CardID's slot is zeroed today, i.e. it points at block 0 = the
-     container header)
+     container header) and into every `--repoint` CardID's slot
+
+`--repoint CARDID` also points a CardID the save already owns at the appended
+record. The deck editor and the album only list owned cards, so a free CardID is
+invisible there: repointing an owned card is what makes the new record observable
+without touching the save.
   4. read everything back from the patched ISO and check it matches
 
 See ESTADO-E1-test.md for the measurements behind each choice.
@@ -46,12 +51,13 @@ def cip_slot(blob: bytes, card_id: int) -> int:
 
 
 def build(src: str, dst: str, *, card_id: int, donor: int, name: str,
-          atk: int, level: int, canaries: tuple[tuple[int, int], ...]) -> int:
+          desc: str | None, atk: int, level: int,
+          canaries: tuple[tuple[int, int], ...], repoints: tuple[int, ...]) -> int:
     print(f"--- 1. append card {card_id} to {EHP_PATH} (donor {donor}) ---")
     ehp = iso_replace.read_iso_file(src, EHP_PATH)
     new_ehp, report = cardinfo_add.add_card(
-        ehp, card_id=card_id, donor_card_id=donor, name=name, atk=atk, level=level,
-        canaries=canaries)
+        ehp, card_id=card_id, donor_card_id=donor, name=name, desc=desc, atk=atk,
+        level=level, canaries=canaries, also_map=repoints)
     for k, v in report.items():
         print(f"    {k}: {v}")
 
@@ -63,15 +69,18 @@ def build(src: str, dst: str, *, card_id: int, donor: int, name: str,
         print("ROUND TRIP MISMATCH after replacing the EHP")
         return 1
 
-    print("--- 3. alias the artwork ---")
+    targets = (card_id,) + tuple(c for c in repoints if c != card_id)
+    print(f"--- 3. alias the artwork into {targets} ---")
     for art in ART_PATHS:
         blob = iso_replace.read_iso_file(src, art)
-        donor_slot, new_slot = cip_slot(blob, donor), cip_slot(blob, card_id)
+        donor_slot = cip_slot(blob, donor)
         entry = blob[donor_slot:donor_slot + 8]
-        before = blob[new_slot:new_slot + 8]
-        out = iso_replace.patch_bytes(dst, art, new_slot, entry, expected=before)
-        print(f"    {art}: slot {card_id} @0x{new_slot:X} "
-              f"{before.hex()} -> {out['after']} (donor {donor} slot @0x{donor_slot:X})")
+        for target in targets:
+            slot = cip_slot(blob, target)
+            before = blob[slot:slot + 8]
+            out = iso_replace.patch_bytes(dst, art, slot, entry, expected=before)
+            print(f"    {art}: slot {target} @0x{slot:X} "
+                  f"{before.hex()} -> {out['after']} (donor {donor} @0x{donor_slot:X})")
 
     print("--- 4. readback from the patched ISO ---")
     back = iso_replace.read_iso_file(dst, EHP_PATH)
@@ -82,15 +91,21 @@ def build(src: str, dst: str, *, card_id: int, donor: int, name: str,
         return 1
     card = cardinfo_add.describe(back, card_id)
     print(f"    new card {card_id}: {card}")
+    for cid in repoints:
+        print(f"    repointed {cid}: {cardinfo_add.describe(back, cid)}")
     for cid, catk in canaries:
         print(f"    canary {cid}: {cardinfo_add.describe(back, cid)}")
     for art in ART_PATHS:
         blob = iso_replace.read_iso_file(dst, art)
-        slot = cip_slot(blob, card_id)
-        print(f"    {art}: slot {card_id} now {blob[slot:slot + 8].hex()}")
+        for target in targets:
+            slot = cip_slot(blob, target)
+            print(f"    {art}: slot {target} now {blob[slot:slot + 8].hex()}")
     print(f"\nOK -> {dst}")
-    print(f"Test in PPSSPP (English): expect ATK 4850 on any Celtic Guardian and a "
-          f"deck-editor card named {name!r} with ATK {atk}.")
+    print("Test in PPSSPP (English), starting a fresh screen:")
+    for cid, catk in canaries:
+        print(f"  canary: CardID {cid} must show ATK {catk}")
+    for cid in repoints:
+        print(f"  card {cid} must now read as {name!r}, ATK {atk}, level {level}")
     return 0
 
 
@@ -98,7 +113,9 @@ def main(argv: list[str]) -> int:
     src, dst = DEFAULT_SRC, DEFAULT_DST
     card_id, donor, atk, level = 4661, 4047, 4900, 4
     name = "E1 TEST CARD"
-    canaries = ((4047, 4850),)
+    desc: str | None = None
+    canaries: tuple[tuple[int, int], ...] = ()
+    repoints: tuple[int, ...] = ()
     i = 1
     while i < len(argv):
         a = argv[i]
@@ -112,6 +129,8 @@ def main(argv: list[str]) -> int:
             donor = int(argv[i + 1]); i += 2
         elif a == "--name":
             name = argv[i + 1]; i += 2
+        elif a == "--desc":
+            desc = argv[i + 1]; i += 2
         elif a == "--atk":
             atk = int(argv[i + 1]); i += 2
         elif a == "--level":
@@ -119,14 +138,16 @@ def main(argv: list[str]) -> int:
         elif a == "--canary":
             cid, catk = argv[i + 1].split(":")
             canaries = canaries + ((int(cid), int(catk)),); i += 2
+        elif a == "--repoint":
+            repoints = repoints + (int(argv[i + 1]),); i += 2
         elif a == "--no-canary":
             canaries = (); i += 1
         else:
             raise SystemExit(f"unknown option {a}")
     if len(argv) > 1 and not os.path.exists(src):
         raise SystemExit(f"source ISO not found: {src}")
-    return build(src, dst, card_id=card_id, donor=donor, name=name, atk=atk,
-                 level=level, canaries=canaries)
+    return build(src, dst, card_id=card_id, donor=donor, name=name, desc=desc,
+                 atk=atk, level=level, canaries=canaries, repoints=repoints)
 
 
 if __name__ == "__main__":

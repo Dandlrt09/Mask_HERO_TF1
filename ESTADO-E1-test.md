@@ -4,9 +4,9 @@ Objetivo: validar el pipeline de datos completo (ID libre + Prop + Genre + IntID
 nombre + arte) **sin escribir una línea de ARM**. Estrategia del proyecto: probar
 primero lo barato; si los datos se leen, el 80% del trabajo de puerto queda resuelto.
 
-Estado: **copia de prueba construida y verificada por ida y vuelta; pendiente la prueba
-en PPSSPP** (la corre el usuario; yo no manejo el emulador desde acá). El ISO original
-no se toca: se parchea una copia (`trabajo/TF1-E1-test.iso`).
+Estado: **copia de prueba Plan B construida y verificada por ida y vuelta; pendiente la
+prueba en PPSSPP** (la corre el usuario; yo no manejo el emulador desde acá). El ISO
+original no se toca: se parchea una copia, `trabajo/TF1-E1-test-planB.iso`.
 
 ---
 
@@ -49,36 +49,44 @@ respuesta empírica a la Q2 de E0 ("¿tabla extensible o de tamaño fijo?").
 ID elegido: **4661** (el libre más bajo, medido). Índice interno nuevo: **2480**.
 Carta donante: **Celtic Guardian** (4047, `genre = 000000000000`, Normal, nivel 4).
 
-Crecimiento total: **54 bytes** (de 288 disponibles).
+Crecimiento total: **152 bytes** (de 288 disponibles: el techo es 1019904 y el archivo
+queda en 1019768).
 
 | Archivo | Cambio | Bytes |
 |---|---|---|
 | `CARD_Prop.bin` | registro nuevo en índice 2480: `CardID=4661`, ATK/DEF/nivel de la donante, `exists=1` | +8 |
 | `CARD_Genre.bin` | genre de la donante (para que entre en los filtros y en la evaluación de la IA) | +6 |
 | `CARD_Pass.bin` | password de la donante | +4 |
-| `CARD_Indx_E.bin` | insertado en 2480 (`name_off` nuevo, `desc_off` = el de la donante) | +8 |
+| `CARD_Indx_E.bin` | insertado en 2480 (`name_off` y `desc_off` nuevos) | +8 |
+| `CARD_Desc_E.bin` | descripción nueva al final del buffer (offset 801952) | +98 |
 | `CARD_Sort_E.bin` | valor de orden de la donante | +2 |
 | `CARD_Name_E.bin` | `"E1 TEST CARD"` al final del buffer (offset 85792) | +26 |
-| `cardh_e.cip` / `cardm_e.cip` | **alias de arte**: se copia la entrada de tabla de la donante en el slot de 4661 | 0 |
+| `cardh_e.cip` / `cardm_e.cip` | **alias de arte**: se copia la entrada de tabla de la donante en los slots de **4661 y 4453** | 0 |
+| `CARD_IntID.bin` | `IntID[4453] = 2480` (**Plan B**): un CardID que ya tenés apunta al registro nuevo | 0 |
 | `cardinfo_eng.ehp` (dentro del ISO) | reemplazo del archivo + actualización del tamaño en el registro de directorio | 0 |
 
-Canarias (S3):
-1. **Canaria de carga**: Celtic Guardian (4047) con ATK 1400 → **4850** en el mismo EHP
-   reconstruido. Si en el juego no se ve 4850, el EHP parcheado no se cargó y el test no
-   dice nada.
-2. **Canaria de carta nueva**: `E1 TEST CARD` con ATK **4900**, DEF 1200, nivel 4, nombre
-   distinto, arte de Celtic Guardian.
+Canarias (S3) — **reemplazadas**: la canaria original era Celtic Guardian, pero el usuario
+no la tiene, así que era invisible. Las definitivas usan cartas que E3 ya probó que tiene
+y ve en el duelo:
+1. **Canaria de carga**: **Gagagigo** (CardID 5759) con ATK 1850 → **4850**.
+2. **Carta nueva observable (Plan B)**: la ranura que era **Giant Red Seasnake**
+   (CardID 4453) apunta al registro appendado → tiene que leerse `E1 TEST CARD`, ATK 4900,
+   DEF 1200, nivel 4, con el arte y la descripción nuevos.
+
+El usuario contestó que el álbum **sólo lista las cartas que tiene**, así que el canal
+"lista completa de la base" no existe en su partida y Plan B es obligatorio.
 
 ## Tareas
 
 | ID | Tarea | Estado |
 |---|---|---|
 | T1 | Documentar el plan y los hechos medidos (`ESTADO-E1-test.md`) | hecho |
-| T2 | `tools/cardinfo_add.py`: reconstruir el EHP con un registro appendado | hecho — 1019616 → 1019670 bytes (+54) |
+| T2 | `tools/cardinfo_add.py`: reconstruir el EHP con un registro appendado | hecho — 1019616 → 1019768 bytes (+152) |
 | T3 | `tools/iso_replace.py`: reemplazar un archivo del ISO + actualizar el tamaño en el directorio | hecho — `roundtrip: True` |
 | T4 | `tools/e1_patch_iso.py`: copia del ISO + EHP nuevo + alias de arte en los 2 CIP + verificación de ida y vuelta | hecho |
 | T5 | Construir la copia de prueba y verificar la relectura | hecho — ver §Verificación |
 | T6 | Prueba en PPSSPP (usuario) y registro del resultado | **pendiente (bloqueado por el test del emulador)** |
+| T7 | Plan B: `--repoint` / `--desc` / `--also-map` en las herramientas + protocolo nuevo | hecho — ver §Verificación |
 
 ## Slices (límites de commit)
 
@@ -87,6 +95,9 @@ Canarias (S3):
   por cualquier experimento posterior (appendear registros, reemplazar un archivo del ISO).
 - **S2** `feat(e1-test): build the test ISO pipeline` → `tools/e1_patch_iso.py` + este
   documento + `README.md`. Es el experimento E1 armado sobre S1.
+- **S3** `feat(e1-test): observe the appended record through an owned card` → Plan B:
+  `--also-map` / `--desc` en `cardinfo_add.py`, `--repoint` en `e1_patch_iso.py`, y las
+  secciones nuevas de este documento.
 
 Siguiente límite natural: el resultado de T6 (prueba en PPSSPP) abre o cierra E1-test
 antes de cualquier otro commit.
@@ -94,12 +105,14 @@ antes de cualquier otro commit.
 ## Artefactos y cómo se reconstruye la copia
 
 ```bash
-# sólo el contenedor (rápido, no toca el ISO)
+# sólo el contenedor (rápido, no toca el ISO): Plan B completo
 python3 tools/cardinfo_add.py trabajo/e2/cardinfo_eng.ehp trabajo/e1/cardinfo_eng_E1.ehp \
-    --card-id 4661 --name "E1 TEST CARD" --donor 4047 --atk 4900 --level 4 --canary 4047:4850
+    --card-id 4661 --name "E1 TEST CARD" --desc "E1 TEST: appended record at internal index 2480." \
+    --donor 4047 --atk 4900 --level 4 --canary 5759:4850 --also-map 4453
 
-# la copia completa del ISO (lee el original, escribe trabajo/TF1-E1-test.iso)
-python3 tools/e1_patch_iso.py
+# la copia completa del ISO (lee el original, escribe trabajo/TF1-E1-test-planB.iso)
+python3 tools/e1_patch_iso.py --dst trabajo/TF1-E1-test-planB.iso \
+    --desc "E1 TEST: appended record at internal index 2480." --canary 5759:4850 --repoint 4453
 ```
 
 `tools/e1_patch_iso.py` imprime el reporte completo y **aborta** si el contenedor no
@@ -110,52 +123,48 @@ empieza en el sector siguiente).
 
 Ida y vuelta por el ISO parcheado, leído de nuevo con las herramientas de sólo lectura:
 
-- `cardinfo_eng.ehp` dentro del ISO: **1019670 bytes**, `sha256` idéntico al construido
-  (`ba90a72e…fed95`), extent 329052 y registro de directorio con el tamaño nuevo.
+- `cardinfo_eng.ehp` dentro del ISO: **1019768 bytes**, `sha256` idéntico al construido
+  (`2c0435e4…e90e9e`), extent 329052, registro de directorio en 71776 con el tamaño nuevo,
+  techo 1019904 (152 de 288 bytes de hueco usados).
 - Carta nueva 4661: `exist=True`, índice interno 2480, ATK 4900, DEF 1200, nivel 4,
-  `name='E1 TEST CARD'`, `genre=000000000000`, arte = entrada de la donante.
-- Canaria 4047 (Celtic Guardian): ATK 1400 → **4850**.
-- Los dos CIP: slot de 4661 `0000000000000000` → `e05c008000000000` (la lista de artes
-  de Celtic Guardian, puntero con el bit alto).
+  `name='E1 TEST CARD'`, `desc_off=801952`, `genre=000000000000`, arte = entrada de la donante.
+- Plan B: CardID **4453** (Giant Red Seasnake) lee el mismo registro 2480 →
+  `name='E1 TEST CARD'`, ATK 4900.
+- Canaria 5759 (Gagagigo): ATK 1850 → **4850**.
+- Los dos CIP: slots de 4661 (`0000000000000000`) y de 4453 (`b6030000…` en cardh,
+  `e1010000…` en cardm) → `e05c008000000000` (lista de artes de Celtic Guardian).
 
 Lo que esta verificación **no** prueba: que el motor del juego acepte un registro
 appendado. Eso sólo lo dice T6.
 
 ## Protocolo de prueba (para el usuario)
 
-Ver `trabajo/TF1-E1-test.iso`. Es una copia del ISO con los datos parcheados.
+Ver `trabajo/TF1-E1-test-planB.iso`. Es una copia del ISO con los datos parcheados.
 
-1. Cargar `trabajo/TF1-E1-test.iso` en PPSSPP, **en inglés**, y **empezar un duelo o
-   abrir una pantalla nueva desde el juego** (no cargar un save state viejo: los save
-   states pisan toda la RAM y darían un falso negativo).
-2. **Canaria 1:** mirar cualquier **Celtic Guardian que aparezca en pantalla** (en el
-   álbum, en tu deck si la tenés, o durante un duelo). Debe mostrar **ATK 4850** en vez
-   de 1400. Si no la ves en ningún lado, eso **no** es un fallo del parche: avisá y
-   elegimos otra canaria entre cartas que sí tengas.
-3. **Canaria 2 y canal de observación — CORREGIDO.** El **editor de deck sólo muestra
-   las cartas que tenés en el save**: una carta nueva (CardID 4661) no está en tu save,
-   así que **no aparecería ahí aunque el motor aceptara el registro**. Esa pantalla no
-   sirve para decidir. El canal válido es una pantalla que liste **toda la base**, es
-   decir el álbum / Card List:
-   - Abrí el álbum (lista de cartas completa) y fijate si lista también las cartas que
-     **no** tenés (silueta, `?`, contador en 0).
-   - Si sí las lista: antes del parche había **2479** entradas (los 472 IDs libres tienen
-     `exist = 0` y no deberían aparecer). Después del parche debería haber **una entrada
-     más**, cerca de la posición del CardID 4661, con el nombre `E1 TEST CARD`
-     (ATK 4900, nivel 4, arte de Celtic Guardian).
-   - Si el álbum sólo lista lo que tenés: **Plan B** (abajo).
-4. **Plan B si el álbum no sirve:** repuntar el `IntID` de un CardID que **ya tenés**
-   (uno que no te importe, es una copia descartable) al registro appendado 2480. El save
-   ya dice "esta carta es tuya", así que la carta nueva aparece en el editor de deck como
-   poseída, **sin tocar el save**. Sigue siendo un test válido del append: el registro
-   vive en un índice nuevo (2480) y el motor lo tiene que leer desde ahí.
-5. Resultado esperado según lo que pase:
+> **Ojo:** el `trabajo/TF1-E1-test.iso` anterior quedó **bloqueado por un proceso de
+> Windows** (casi seguro el emulador abierto con ese archivo) y no se pudo reescribir.
+> Esa copia **no** tiene el Plan B: no sirve para este test.
+
+1. Cargá `trabajo/TF1-E1-test-planB.iso` en PPSSPP, **en inglés**, y **empezá desde una
+   pantalla nueva del juego** — no cargues un save state viejo: los save states pisan
+   toda la RAM y darían un falso negativo.
+2. **Canaria de carga:** en tu deck está **Gagagigo** (lo probó E3). Tiene que mostrar
+   **ATK 4850** en vez de 1850. Si ves 1850, el EHP parcheado no se cargó y el test no
+   dice nada: pará y avisá.
+3. **La carta nueva:** la ranura de tu deck (y del editor) que era **Giant Red Seasnake**
+   ahora tiene que leerse como **`E1 TEST CARD`**, ATK **4900**, DEF 1200, nivel 4,
+   **con el arte y la descripción de Celtic Guardian** en vez de la serpiente.
+   Ese nombre, esa descripción, ese ATK y ese DEF salen del **registro appendado en el
+   índice interno 2480**, que antes no existía. Si podés, invocala en un duelo: el arte
+   de campo también tiene que ser el elfo.
+4. Resultado según lo que pase:
 
 | Resultado | Lectura |
 |---|---|
-| La carta nueva aparece (álbum, o editor por Plan B) | el motor lee registros appendados: **pipeline de datos validado** y la Q2 de E0 se responde SÍ |
-| La canaria 1 se ve, pero la carta nueva no aparece | el EHP se lee, pero el motor no acepta índices fuera de rango o no indexa por `IntID` como creemos |
-| No aparece nada, ni la canaria 1 | el EHP parcheado no se cargó (o el juego no está en la versión inglesa): hay que revisar el reemplazo del archivo en el ISO |
+| La ranura se lee `E1 TEST CARD` (nombre + ATK 4900 + arte nuevo) | el motor lee registros appendados: **pipeline de datos validado** y la Q2 de E0 se responde SÍ |
+| La canaria se ve (4850) pero la ranura sigue siendo Giant Red Seasnake | el EHP se lee, pero el motor no acepta índices fuera de rango: agregar cartas sólo con datos no alcanza |
+| La ranura aparece **vacía / en blanco / crashea** al mostrarla | el motor leyó algo pero no le gustó; causa más probable: el `card_id` del `Prop` del registro dice 4661 y no 4453. **Plan C:** reconstruir con `card_id = 4453` |
+| No aparece ni la canaria | el EHP parcheado no se cargó (o el juego no está en inglés): revisar el reemplazo del archivo en el ISO |
 
 ### Por qué NO usar un código AR de "todas las cartas"
 
@@ -192,3 +201,18 @@ Ver `trabajo/TF1-E1-test.iso`. Es una copia del ISO con los datos parcheados.
   save, así que no sirve para una carta nueva) y descartado el código AR por las razones
   de §Por qué NO usar un código AR. Se agregó el Plan B (repuntar el `IntID` de un CardID
   ya poseído al registro appendado).
+- **L7** (respuestas del usuario): el álbum **sólo lista las cartas que tiene**, y **no
+tiene** Celtic Guardian → el canal "lista completa" no existe y la canaria original era
+  invisible. Plan B obligatorio, con canaria sobre Gagagigo (5759) y observación sobre
+  Giant Red Seasnake (4453), las dos cartas que E3 probó que tiene.
+- **L8** (incidente): `trabajo/TF1-E1-test.iso` quedó **bloqueado** (`PermissionError` al
+  abrirlo: proceso de Windows, casi seguro el emulador) → la copia Plan B se escribió en
+  `trabajo/TF1-E1-test-planB.iso`. Lección: no reescribir un ISO que el usuario puede
+  tener abierto; usar nombre nuevo.
+- **L9** (recibo de revisión): para el candidato de las herramientas (2 archivos,
+  100 líneas cambiadas) la revisión nativa quedó **declinada para este candidato**
+  (`consent-declined-this-candidate`, `lineage_created=false`) y el plan de `assess` fue
+  `writerSelfVerification` sin verificador independiente (RDD encendido, revisión
+  declinada ⇒ se aplica el camino por riesgo, y ningún ítem de riesgo alto se escaló).
+  El `nativeRisk: high` con evidencia `process_boundary` es un falso positivo del
+  heurístico: esas herramientas no lanzan procesos.

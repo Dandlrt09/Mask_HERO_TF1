@@ -121,10 +121,17 @@ def describe(data: bytes, card_id: int, base: int = CARD_ID_BASE) -> dict:
 
 
 def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str,
-             atk: int | None = None, dfn: int | None = None, level: int | None = None,
+             desc: str | None = None, atk: int | None = None, dfn: int | None = None,
+             level: int | None = None,
              canaries: tuple[tuple[int, int], ...] = (),
+             also_map: tuple[int, ...] = (),
              base: int = CARD_ID_BASE) -> tuple[bytes, dict]:
-    """Append one new card and optionally patch ATK canaries on existing cards."""
+    """Append one new card and optionally patch ATK canaries on existing cards.
+
+    `also_map` additionally points other CardIDs at the appended record, which is
+    how a card the save already owns can be used to observe the new record: the
+    deck editor only lists owned cards, and no save owns a free CardID.
+    """
     _, entries = parse(data)
     bodies = {e.name: e.body for e in entries}
     prop = bodies[region(entries, "CARD_Prop").name]
@@ -180,12 +187,28 @@ def add_card(data: bytes, *, card_id: int, donor_card_id: int, name: str,
     name_off = len(names_entry.body)
     encoded = name.encode("utf-16-le") + b"\x00\x00"
     bodies[names_entry.name] = names_entry.body + encoded
-    report.update(name_off=name_off, name_bytes=len(encoded), desc_off=donor_desc_off)
+    report.update(name_off=name_off, name_bytes=len(encoded))
+
+    descs_entry = region(entries, "CARD_Desc")
+    if desc is None:
+        desc_off = donor_desc_off
+    else:
+        desc_off = len(descs_entry.body)
+        desc_bytes = desc.encode("utf-16-le") + b"\x00\x00"
+        bodies[descs_entry.name] = descs_entry.body + desc_bytes
+        report.update(desc_off=desc_off, desc_bytes=len(desc_bytes),
+                      desc_of_donor=donor_desc_off)
+    if desc is None:
+        report["desc_off"] = desc_off
 
     bodies[indx_entry.name] = (indx_entry.body[:idx * 8]
-                               + struct.pack("<II", name_off, donor_desc_off)
+                               + struct.pack("<II", name_off, desc_off)
                                + indx_entry.body[idx * 8:])
 
+    for cid in also_map:
+        struct.pack_into("<H", intid, (cid - base) * 2, idx)
+        report.setdefault("remapped", []).append(
+            {"card_id": cid, "internal_index": idx, "intid_slot": (cid - base) * 2})
     struct.pack_into("<H", intid, (card_id - base) * 2, idx)
     bodies[region(entries, "CARD_IntID").name] = bytes(intid)
     report["intid_slot"] = (card_id - base) * 2
@@ -200,12 +223,15 @@ def main(argv: list[str]) -> int:
     if len(argv) < 4:
         print(__doc__)
         print("usage: cardinfo_add.py <in.ehp> <out.ehp> --card-id N --name S "
-              "--donor N [--atk N] [--def N] [--level N] [--canary ID:ATK]...\n"
+              "--donor N [--desc S] [--atk N] [--def N] [--level N]\n"
+              "                          [--canary ID:ATK]... [--also-map ID]...\n"
               "       cardinfo_add.py <in.ehp> --print-card N")
         return 1
     src, dst = argv[1], argv[2]
     opts = {"atk": None, "dfn": None, "level": None}
     canaries: list[tuple[int, int]] = []
+    also_map: list[int] = []
+    desc = None
     card_id = donor = None
     name = None
     i = 3
@@ -219,22 +245,29 @@ def main(argv: list[str]) -> int:
             name = argv[i + 1]; i += 2
         elif a in ("--atk", "--def", "--level"):
             opts["dfn" if a == "--def" else a[2:]] = int(argv[i + 1]); i += 2
+        elif a == "--desc":
+            desc = argv[i + 1]; i += 2
         elif a == "--canary":
             cid, catk = argv[i + 1].split(":")
             canaries.append((int(cid), int(catk))); i += 2
+        elif a == "--also-map":
+            also_map.append(int(argv[i + 1])); i += 2
         elif a == "--print-card":
             print(describe(open(src, "rb").read(), int(argv[i + 1]))); return 0
         else:
             raise SystemExit(f"unknown option {a}")
     data = open(src, "rb").read()
     out, report = add_card(data, card_id=card_id, donor_card_id=donor, name=name,
-                           canaries=tuple(canaries), **opts)
+                           desc=desc, canaries=tuple(canaries),
+                           also_map=tuple(also_map), **opts)
     with open(dst, "wb") as f:
         f.write(out)
     print(f"wrote {dst}: {len(data)} -> {len(out)} bytes (+{report['growth']})")
     for k, v in report.items():
         print(f"  {k}: {v}")
     print("readback:", describe(out, card_id))
+    for cid in also_map:
+        print(f"readback {cid}:", describe(out, cid))
     return 0
 
 
