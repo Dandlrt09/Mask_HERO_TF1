@@ -1,13 +1,37 @@
 # ESTADO — E1-test: agregar UNA carta nueva y ver si aparece en el juego
 
+> ## RESULTADO — POSITIVO (T6 ejecutado)
+>
+> Prueba en PPSSPP con el juego **en español**, sobre `trabajo/TF1-E1-test-planB.iso`
+> (mismo archivo con el que se hizo el intento fallido por idioma, reconstruido):
+>
+> - **Canaria (S3)**: GAGAGIGO mostró **ATK/4850 DEF/1000** (antes ATK/1850) → el
+>   `cardinfo_spa.ehp` parcheado **sí** se está cargando, y el arte/desc siguen siendo los
+>   de la carta original.
+> - **Carta nueva**: la ranura que era «Red Seasnake del gigante» (CardID 4453) se lee
+>   **`E1 TEST CARD`**, ATK **4900**, DEF 1200, nivel 4, `[GUERRERO]`, con el **arte de
+>   «Guardián Celta»** y la descripción `E1 TEST: appended record at internal index 2480.`
+>   (4 copias, todas iguales).
+>
+> **Conclusión: el motor SÍ lee registros appendados.** El registro vive en el índice
+> interno **2480**, que antes no existía, y el motor lo resolvió por
+> `CARD_IntID[4453] → 2480`. **Q2 de E0 respondida: la tabla de la base de cartas es
+> extensible** (al menos para lectura y render: Prop, Indx, Name, Desc y el alias de arte
+> se leen todos del registro nuevo).
+>
+> **Consecuencia para el proyecto**: agregar cartas nuevas es un problema de **datos**, no
+> de ARM. Queda pendiente un detalle observado: el ícono rojo de «no permitido» que el
+> editor de deck dibuja sobre la carta nueva (¿la considera legal para el deck?). Candidato
+> principal: el `card_id` del `Prop` del registro dice 4661 mientras la ranura es 4453
+> (Plan C). Tarea **T9**.
+
 Objetivo: validar el pipeline de datos completo (ID libre + Prop + Genre + IntID +
 nombre + arte) **sin escribir una línea de ARM**. Estrategia del proyecto: probar
 primero lo barato; si los datos se leen, el 80% del trabajo de puerto queda resuelto.
 
-Estado: **copia de prueba Plan B reconstruida para la base en ESPAÑOL y verificada por
-ida y vuelta; pendiente la prueba en PPSSPP** (la corre el usuario; yo no manejo el
-emulador desde acá). El ISO original no se toca: se parchea una copia,
-`trabajo/TF1-E1-test-planB.iso`.
+Estado: **E1-test cerrado en POSITIVO** (T6 ejecutado; la copia de prueba es
+`trabajo/TF1-E1-test-planB.iso`, base en español). Queda abierta sólo la observación
+menor T9 (ícono de «no permitido»), que no afecta la conclusión.
 
 > **Idioma (error corregido en L10).** El juego del usuario está en **español**, así que
 > carga `cardinfo_spa.ehp` y el arte `cardh_s.cip`/`cardm_s.cip`. La primera copia estaba
@@ -91,9 +115,10 @@ El usuario contestó que el álbum **sólo lista las cartas que tiene**, así qu
 | T3 | `tools/iso_replace.py`: reemplazar un archivo del ISO + actualizar el tamaño en el directorio | hecho — `roundtrip: True` |
 | T4 | `tools/e1_patch_iso.py`: copia del ISO + EHP nuevo + alias de arte en los 2 CIP + verificación de ida y vuelta | hecho |
 | T5 | Construir la copia de prueba y verificar la relectura | hecho — ver §Verificación |
-| T6 | Prueba en PPSSPP (usuario) y registro del resultado | **pendiente (bloqueado por el test del emulador)** |
+| T6 | Prueba en PPSSPP (usuario) y registro del resultado | **hecho — POSITIVO**: canaria GAGAGIGO 4850 y la ranura 4453 leída como `E1 TEST CARD` ATK 4900 |
 | T7 | Plan B: `--repoint` / `--desc` / `--also-map` en las herramientas + protocolo nuevo | hecho — ver §Verificación |
 | T8 | `--lang` en `e1_patch_iso.py` y reconstrucción para la base en español | hecho — ver §Verificación |
+| T9 | Explicar el ícono rojo de «no permitido» sobre la carta nueva (¿legalidad de deck?) | **pendiente** — Plan C si es el `card_id` del `Prop` |
 
 ## Slices (límites de commit)
 
@@ -237,3 +262,10 @@ tiene** Celtic Guardian → el canal "lista completa" no existe y la canaria ori
   herramienta, copia reconstruida para español (`cardinfo_spa.ehp` 1125368 bytes,
   `cardh_s.cip`/`cardm_s.cip`). Medición del contenedor español: mismas 2480 cartas, mismos
   índices internos, 472 IDs libres, `Indx` con 2482 entradas, hueco de 1184 bytes.
+- **L11** (usuario, textual): «listo» + dos capturas del editor de deck. Evidencia:
+  (a) GAGAGIGO seleccionado con **ATK/4850 DEF/1000** y X4; (b) la ranura seleccionada
+  muestra el arte de «Guardián Celta», el rótulo **`E1 TEST CARD`**, ATK/4900 DEF/1200,
+  4 estrellas, `[GUERRERO]` y la descripción `E1 TEST: appended record at internal index
+  2480.`, con X4 copias. **T6 cerrado en positivo.** Observación: sobre esa carta aparece
+  el ícono rojo de «no permitido» (y el contador «Kind of possession card» bajó de 35 a 34
+  entre las dos pruebas: puede ser el deck del usuario, no se investigó).
