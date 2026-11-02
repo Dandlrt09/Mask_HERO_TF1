@@ -476,6 +476,55 @@ ART_PATHS = ("PSP_GAME/USRDIR/card/cardh_s.cip",
 DEFAULT_BOOT_ARTIFACT = os.path.join(ROOT, "trabajo", "e1c", "BOOT.BIN")
 DEFAULT_ISO_OUT = os.path.join(ROOT, "trabajo", "e6", "TF1-E6-18.iso")
 
+# --- game-module patches: let the 18 new internal indices exist -------------
+#
+# The card database has 2480 records (internal indices 0..2479), all of them
+# taken by real cards, so the 18 new cards live at indices 2480..2497.  Three
+# places in the game's code still assume 2480:
+#
+#   * libcardalbum.prx builds the CardID-by-index map in a fixed stack frame:
+#     `addiu sp,sp,-6000`, the map is 2480 u16 entries at sp+0x40E, i.e. it ends
+#     exactly at sp+0x1770 = the end of the frame (one extra index fits, 2481
+#     onwards writes past it, into the caller's frame).  Growing the frame to
+#     6048 B (2498 entries end at sp+0x1792 = 6034) makes room; the matching
+#     epilogue must grow by the same amount.
+#   * the owned-list loop in libcardalbum stops at `slti s1, 2480`.
+#   * libduel_draw clamps a card-list cursor with the same `slti s1, 2480`.
+#
+# Words, verified by searching each module for the exact instruction word and
+# requiring exactly one hit:
+MODULE_PATCHES = (
+    ("PSP_GAME/USRDIR/gmodule/libcardalbum.prx", 0x27BDE890, 0x27BDE860,
+     "stack frame 6000 -> 6048 B (room for the 2498-entry CardID map)"),
+    ("PSP_GAME/USRDIR/gmodule/libcardalbum.prx", 0x27BD1770, 0x27BD17A0,
+     "matching epilogue 6000 -> 6048 B"),
+)
+# `slti rt,rs,2480` -> `slti rt,rs,2480+len(rows)` (immediate in the low 16 bits)
+BOUND_PATCHES = (
+    ("PSP_GAME/USRDIR/gmodule/libcardalbum.prx", 0x2A2309B0,
+     "owned-list loop bound 2480 -> 2498"),
+    ("PSP_GAME/USRDIR/gmodule/libduel_draw.prx", 0x2A2309B0,
+     "card-list cursor clamp 2480 -> 2498"),
+)
+
+
+def plan_module_patches(iso, new_indices: int) -> list[dict]:
+    """Locate every module word to patch, asserting it is unique in its file."""
+    plan: list[dict] = []
+    items = list(MODULE_PATCHES)
+    for path, old, why in BOUND_PATCHES:
+        items.append((path, old, (old & 0xFFFF0000) | (2480 + new_indices), why))
+    for path, old, new, why in items:
+        blob = iso.read_file(path)
+        hits = [off for off in range(0, len(blob) - 3, 4)
+                if struct.unpack_from("<I", blob, off)[0] == old]
+        if len(hits) != 1:
+            raise ValueError(f"{path}: expected exactly one 0x{old:08x}, found "
+                             f"{len(hits)} at {[hex(h) for h in hits]}")
+        plan.append({"path": path, "offset": hits[0], "old": old, "new": new,
+                     "why": why, "extent": iso.resolve(path).extent})
+    return plan
+
 
 def iso_path(path: str) -> str:
     """Path as tools/e6_iso_space.walk() reports it (leading slash)."""
@@ -578,6 +627,7 @@ def cmd_iso(args) -> int:
         data_alloc = e6_iso_space.allocated_sectors(data_entry.size)
         vol = e6_iso_space.volume_sectors(iso)
         art_plans = plan_art(iso, rows)
+        module_plan = plan_module_patches(iso, len(rows))
         art_sectors = {}
         for plan in art_plans:
             for slot in plan["slots"]:
@@ -649,6 +699,12 @@ def cmd_iso(args) -> int:
             allow(lba, f"art alias in {plan['path']}")
     for off in allowed_bytes:
         allow((boot_entry.extent * SECTOR + off) // SECTOR, "engine patch (BOOT.BIN)")
+    for patch in module_plan:
+        lba = patch["extent"] + patch["offset"] // SECTOR
+        allow(lba, f"module patch: {patch['path'].rsplit('/', 1)[1]} @0x{patch['offset']:x}")
+        print(f"    module patch: {patch['path'].rsplit('/', 1)[1]} "
+              f"@0x{patch['offset']:x} 0x{patch['old']:08x} -> 0x{patch['new']:08x} "
+              f"({patch['why']})")
     if src_eboot_encrypted:
         # an encrypted ~PSP EBOOT cannot be patched in place, so the whole file is
         # replaced by the patched engine zero-padded to its directory size, exactly
@@ -683,13 +739,19 @@ def cmd_iso(args) -> int:
         rep = iso_replace.patch_bytes(args.dst, plan["path"], 0, plan["blob"])
         print(f"    art: {plan['path']}: {len(plan['slots'])} slots aliased, "
               f"skipped {len(plan['skipped'])}, roundtrip={rep['roundtrip']}")
+    for patch in module_plan:
+        rep = iso_replace.patch_bytes(args.dst, patch["path"], patch["offset"],
+                                      struct.pack("<I", patch["new"]),
+                                      expected=struct.pack("<I", patch["old"]))
+        print(f"    module: {patch['path'].rsplit('/', 1)[1]} @0x{patch['offset']:x} "
+              f"0x{patch['old']:08x} -> 0x{patch['new']:08x}")
 
     print("--- 5. verification from the written ISO")
     errs = verify_iso(args.src, args.dst, pristine, built, rows, boot, patched,
                       padded, allowed_bytes, retarget_entry, new_lba, need,
                       card_entry.extent, card_entry.size, eboot_size,
                       art_plans, allowed_sectors, tail_diff,
-                      data_entry.extent, data_alloc)
+                      data_entry.extent, data_alloc, module_plan)
     if errs:
         print(f"VERIFICATION FAILED ({len(errs)}):")
         for e in errs:
@@ -702,7 +764,7 @@ def cmd_iso(args) -> int:
 def verify_iso(src, dst, pristine, built, rows, boot, patched, padded,
                allowed_bytes, retarget_entry, new_lba, need, old_lba, old_size,
                eboot_size, art_plans, allowed_sectors, tail_diff,
-               data_lba, data_alloc) -> list[str]:
+               data_lba, data_alloc, module_plan) -> list[str]:
     errs: list[str] = []
     iso = Iso9660(dst)
     try:
@@ -754,6 +816,12 @@ def verify_iso(src, dst, pristine, built, rows, boot, patched, padded,
                 if got != slot["after"]:
                     errs.append(f"{plan['path']} CardID {slot['cardid']}: slot is "
                                 f"{got}, expected {slot['after']}")
+        for patch in module_plan:
+            blob = iso.read_file(patch["path"])
+            got, = struct.unpack_from("<I", blob, patch["offset"])
+            if got != patch["new"]:
+                errs.append(f"{patch['path']} @0x{patch['offset']:x}: 0x{got:08x}, "
+                            f"expected 0x{patch['new']:08x}")
     finally:
         iso.close()
 
