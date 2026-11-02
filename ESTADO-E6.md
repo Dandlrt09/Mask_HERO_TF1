@@ -1,7 +1,7 @@
 # ESTADO — Spike E6: portar las 18 cartas HÉROE Enmascarado
 
-Fecha: sesión del cierre de E5 + arranque de E6.
-Estado: **decisiones tomadas y tabla de contenido escrita. El build se frena en un bloqueo de layout del ISO (ver §4), que necesita una decisión del usuario.**
+Fecha: sesión del cierre de E5 + arranque de E6 (decisión de layout y build offline hechos).
+Estado: **el build está hecho y verificado offline: contenedor de 2498 registros y `trabajo/e6/TF1-E6-18.iso` (commit `8a89d18`). Quedan T13 (prueba del usuario en PPSSPP) y T14 (propiedad en el save, bloqueada esperando la copia en `trabajo/save/`).**
 Nada del ISO original fue modificado; todo el trabajo vive en copias (`trabajo/`).
 
 Continúa a `ESTADO-E5-limite.md` (estrategia C, cerrada y verificada) y a `ESTADO-E0.md` §1 (alcance).
@@ -48,20 +48,22 @@ Medido con `tools/e6_iso_space.py` (analizador de extents ISO9660, verificado en
 
 Mover un archivo es legal: su identidad es el registro de directorio; hay que reescribir LBA (bytes 2..9) y tamaño (10..17) en LE y BE. `tools/e6_iso_space.py` ya expone el analizador y un `relocate_record`; **no fue usado todavía** (el build se canceló antes).
 
+**RESUELTO (esta sesión) — opción A.** Se neutralizó `PSP_GAME/SYSDIR/UPDATE/DATA.BIN` reescribiendo su registro de directorio con longitud 0 (los 7548 sectores quedan libres; el juego nunca lee esa carga de firmware) y el contenedor se escribió en LBA 3091, el inicio de la región liberada. La cola no usada LBA 3646..10639 queda sin referenciar y la asignación vieja del contenedor (LBA 331709..332259) también queda libre. No hubo que tocar películas ni recortar textos.
+
 ## 5. Tareas
 
 | ID | Tarea | Estado |
 |---|---|---|
 | T11 | Tabla de contenido de las 18 (`datos/cartas_18.tsv`) con códigos derivados y donantes de arte | **hecha** — la verifica el build |
-| T12 | Construir el contenedor de 2481+18 registros (Prop/Genre/Pass/Indx/Name/Desc/IntID) y verificar que los 2480 previos no cambian | pendiente |
-| T12b | Liberar espacio en el ISO y reubicar el contenedor (ver §4) | **bloqueada — espera decisión del usuario** |
-| T12c | ISO final: contenedor reubicado + alias de arte en `cardh_s.cip`/`cardm_s.cip` + motor C2 + verificación offline | pendiente |
-| T13 | Prueba del usuario: las 18 visibles en el álbum (nombre, arte, ATK/DEF, nivel) y una en duelo | pendiente |
-| T14 | Editar el save/álbum para que el jugador posea las 18 (vía elegida para obtenerlas) | pendiente |
+| T12 | Construir el contenedor de 2481+18 registros (Prop/Genre/Pass/Indx/Name/Desc/IntID) y verificar que los 2480 previos no cambian | **hecha** |
+| T12b | Liberar espacio en el ISO y reubicar el contenedor (ver §4) | **hecha (opción A)** — ya no bloqueada |
+| T12c | ISO final: contenedor reubicado + alias de arte en `cardh_s.cip`/`cardm_s.cip` + motor C2 + verificación offline | **hecha** |
+| T13 | Prueba del usuario: las 18 visibles en el álbum (nombre, arte, ATK/DEF, nivel) y una en duelo | pendiente — prueba del usuario sobre `trabajo/e6/TF1-E6-18.iso` |
+| T14 | Editar el save/álbum para que el jugador posea las 18 (vía elegida para obtenerlas) | bloqueada — espera la copia del save en `trabajo/save/` |
 
 ## 6. Plan de build (para no re-derivar; es el spec que se le pasó al worker cancelado)
 
-Herramientas nuevas previstas: `tools/e6_build_18.py` (constructor) y `tools/e6_iso_space.py` (analizador/movedor, ya existe). Reutilizar, sin modificar, `tools/cardinfo_add.py` (agregado de un registro) y `tools/e5_c2_patch.py` (parche del motor: 17 palabras del wrapper en 0x478fc, entrada de reloc repuntada, entrada de dirección del NID `0xcda3b5c5` → 0x478fc, y los dos `jal 0x478fc`; EBOOT.BIN = el ELF parcheado con ceros hasta 1104032 B).
+Herramientas: `tools/e6_build_18.py` (constructor, ya escrito: implementa los pasos 1..6 de este plan) y `tools/e6_iso_space.py` (analizador/movedor, ya existe). Reutilizar, sin modificar, `tools/cardinfo_add.py` (agregado de un registro) y `tools/e5_c2_patch.py` (parche del motor: 17 palabras del wrapper en 0x478fc, entrada de reloc repuntada, entrada de dirección del NID `0xcda3b5c5` → 0x478fc, y los dos `jal 0x478fc`; EBOOT.BIN = el ELF parcheado con ceros hasta 1104032 B).
 
 1. Leer `datos/cartas_18.tsv`; **afirmar** que los 18 cardid están libres en el contenedor prístino (`CARD_IntID[cardid-4000] == 0`) y resolver cada `arte_donante` por nombre exacto; si alguno no resuelve, sustituir por el HÉROE existente del mismo `attr` y **reportarlo**.
 2. Agregar los 18 registros en 2480..2497 en el orden del TSV, con todos los campos del TSV y `CardExistFlag=1`; `CARD_IntID[cardid-4000] = índice`.
@@ -77,14 +79,39 @@ Herramientas nuevas previstas: `tools/e6_build_18.py` (constructor) y `tools/e6_
 - **L3 (usuario, verbatim).** «Guarda sesion, sigamos con esto en la proxima» → cierre de sesión: se guardan notas, memoria y commits.
 - **L4 (hallazgo).** El build de las 18 se canceló al detectarse (§4) que el ISO no tiene región contigua libre; el analizador `tools/e6_iso_space.py` quedó escrito y **verificado** (su medición se reprodujo en esta sesión). No se escribió ningún ISO de E6.
 - **L5 (nota de continuidad).** Quedan sin trackear y sin commitear a propósito: `tools/e6_iso_space.py` (verificado) y `tools/e5_patch_iso_c2.py` (diagnóstico del camino bloqueado del wrapper). El resto se commitea en esta sesión.
+- **L6 (usuario, textual).** «Termina lo que dejamos a medio camino, me asuste por el gran consumo de creditos que ha causado este proyecto así que terminemos, pruebas y cerramos sesion»
+- **L7 (usuario, textual).** «Expliame bien estas opciones» (pedido sobre las opciones de espacio en el ISO) y «Editar mi save (te paso copia)» (vía de obtención elegida, T14).
+- **L8 (hallazgo).** El contenedor creció a 555 sectores contra 550 asignados y el ISO base no tiene región contigua libre (sólo LBA 0..21, que es metadata de ISO9660 y no se puede usar); por eso el build necesita reubicar el contenedor. Decisión: opción A (ver §4/§5). E1/E5 no tuvieron este problema porque su carta única entraba en la holgura de 1184 B.
+- **L9 (build).** `tools/e6_build_18.py` construye el contenedor y el ISO, y verifica ambos (ver §9 y el commit `8a89d18`). Se corrigieron dos errores propios de contabilidad de la verificación antes de la pasada final; el artefacto no cambió. Con esto T12, T12b y T12c quedan hechos y el corte queda en T13 (prueba del usuario) y T14 (propiedad en el save).
 
 ## 8. Entrega (corte de slice)
 
-Rama `spike/e1-test`. Cierre de sesión con cuatro commits para E5 (el slice de la estrategia C queda cerrado y verificado):
+Rama `spike/e1-test`. E5 se cerró con cuatro commits (el slice de la estrategia C queda cerrado y verificado):
 
 - `ac4187b` feat(e5): las tres herramientas (`e5_patch_iso.py`, `e5_patch_iso_c2.py`, `e5_c2_patch.py`)
 - `81d8ae6` docs(e5): `ESTADO-E5-limite.md`
 - `aebb888` feat(e6): `datos/cartas_18.tsv` + `datos/efectos_heroes_enmascarados.txt`
 - `b69bc37` docs(e6): este documento + `tools/e6_iso_space.py`
 
-**El corte de entrega queda acá**: E6 (las 18) es un slice nuevo, que arranca cuando se resuelva §4 (espacio en el ISO) y va con sus propios commits de unidad de trabajo. Los ISO de prueba viven en `trabajo/` y están en `.gitignore`. Push, PR y merge son decisión del usuario: nada se subió.
+Slice de E6 (las 18), con sus propios commits de unidad de trabajo:
+
+- `aebb888` / `b69bc37` (sesión previa): tabla de contenido y analizador de espacio
+- `8a89d18` feat(e6): construye la base de datos de 18 cartas y el ISO de prueba verificado (`tools/e6_build_18.py`)
+- este commit (`docs(e6)`): actualiza este documento con el corte del slice
+
+**El corte de entrega queda acá**: T12, T12b y T12c hechos y verificados offline; el slice se cierra con T13 (prueba del usuario) y T14 (propiedad en el save). Los ISO de prueba viven en `trabajo/` y están en `.gitignore`. Push, PR y merge son decisión del usuario: nada se subió.
+
+---
+
+## 9. Prueba en PPSSPP (T13)
+
+Protocolo:
+
+1. Abrir `trabajo/e6/TF1-E6-18.iso` en PPSSPP con el idioma de la interfaz del juego en español.
+2. Arrancar desde una pantalla nueva y **no cargar un save state viejo** (un save state sobreescribe RAM y daría un falso negativo).
+3. Comprobar: (a) el juego arranca; (b) el álbum y el editor de deck siguen mostrando las cartas propias del jugador sin cambios; (c) un duelo arranca y se juega.
+
+Expectativas conocidas que **no** son fallos:
+
+- Los efectos de las cartas no se ejecutan: el port es de datos (nombre, arte, ATK/DEF, tipo/atributo/nivel, texto). TF1 mantiene los efectos de carta como código de motor, no como datos.
+- Las 18 cartas no pueden aparecer en el álbum hasta que T14 conceda la propiedad, porque el álbum lista solo las cartas poseídas.
