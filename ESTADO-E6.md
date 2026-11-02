@@ -88,6 +88,7 @@ Herramientas: `tools/e6_build_18.py` (constructor, ya escrito: implementa los pa
 - **L11 (hallazgo).** Con el save legible se identificó la tabla de propiedad del save por sus 35 entradas no nulas (exactamente las 35 cartas distintas del deck) y, con ella, el **bloqueo real** del port: el array `CardID[índice]` que arma el álbum vive en un frame de 6000 B que termina justo donde termina el array de 2480 entradas, así que los índices 2480..2497 desbordaban la pila del llamador (ver §10.3). El test de E5 con **una** carta había pasado justo porque caía adentro del frame.
 - **L12 (decisión + build).** Se eligió la vía que **no pierde ninguna carta**: extender la tabla del save en la cola libre que sigue a los 2480 registros, y subir el límite del juego con 4 palabras de módulo (frame del álbum y su epilogue, más los dos `slti …,2480`). `tools/e6_patch_save.py` concede las 18 (54 bytes cambiados, todos dentro de la extensión) y el ISO se reconstruyó y verificó por sectores (1105/1105 nombrados por el plan). Commit `9781db0`; artefactos y protocolo en §9 y §10.5.
 - **L13 (usuario, textual).** «Todo validado. Dime que es lo que seguiria y guarda sesion» + tres capturas. **T13 cerrada.** Evidencia de las capturas: el editor de deck muestra **«Kind of possession card 53»** (= las 35 propias + las 18 nuevas, que es exactamente el número que concede el parche) y **Trunk 18**; la carta «CAMBIO DE MÁSCARA II» se ve como MÁGICA/JUEGO RÁPIDO con su arte y su texto en español; un duelo arranca y se juega (LP 5700 vs 6000, turno 24) con **HÉROE ENMASCARADO HORNO** (2200/1000) en el campo y su texto; el deck de fusión del duelo lista las fusiones nuevas (HÉROE DEL CONTRASTE CHAOS 3000/2600 entre ellas). Con esto E6 queda cerrado: T11..T15 hechas y la prueba del usuario pasada.
+- **L14 (usuario, textual).** «Anota dos cosas: 1) El arte esta equivocado, quiza te pase una foto del arte real de las paginas wiki y quizá así se pueda armar algo, no sabria como editar el nombre de la carta en el arte como tal. 2) Si vamos a probar los efectos de cambio de mascara seria necesario usar un deck hero así que como puedes editar y agregar cartas te mandaré una receta de Jaiden de este TF1 para que agregues esas cartas y así ya tendriamos mostruos hero para los efectos» → anotado como §12: (A) el arte real exige reemplazar la imagen entera (el nombre va pintado adentro) y hay que estudiar el formato de imagen de los CIP primero; (B) la receta de Jaden se agrega a la colección por la tabla de propiedad del save, sin parches extra.
 
 ## 8. Entrega (corte de slice)
 
@@ -107,14 +108,6 @@ Slice de E6 (las 18), con sus propios commits de unidad de trabajo:
 - este commit (`docs(e6)`): agrega §10 y actualiza el corte del slice
 
 **El corte de entrega queda acá**: T11..T15 hechas, verificadas offline y **validadas por el usuario en PPSSPP** (L13); el slice de E6 está cerrado. Los ISO de prueba y el save parcheado viven en `trabajo/` y están en `.gitignore`. Push, PR y merge son decisión del usuario: nada se subió.
-
----
-
-## 11. Qué seguiría (después de E6)
-
-1. **Cierre de entrega.** La rama `spike/e1-test` acumula 23 commits desde `main`, por encima del slice revisable de ~400 líneas: conviene partirla en PRs encadenados (spikes E0-E3 / E1-test / E5 / E6) o al menos publicar E6 solo. Decisión del usuario: push/PR/merge. Falta además una sección de README con *cómo se reconstruye* el ISO de las 18 (`tools/e6_build_18.py container` → `iso`) y el save (`tools/e6_patch_save.py patch`).
-2. **E7 (opcional, el reto real que queda): que las cartas *actúen*.** El port es de datos; los efectos de TF1 viven en código de motor por carta. Para que las 18 tengan su efecto y para que las 11 fusiones se puedan invocar habría que averiguar si TF1 guarda recetas de fusión en datos (`duelsys/*.ehp`) y cómo se cablea un efecto en `libduel_eng.prx`/`libduel_mgr.prx` (los módulos son ELF sin cifrar, o sea que es abordable, pero es una fase grande y de riesgo alto). Alcance a decidir con una pregunta al usuario antes de empezar.
-3. **Pendientes menores.** (a) Obtener las 18 *sin* parchear el save: existe `libpassword.prx` (máquina de contraseñas) y `libshop.prx`, así que la vía "comprarlas" o "contraseña" es investigable; hoy las cartas nuevas tienen `password = 0`. (b) El juego puede reescribir el save con 2480 registros al guardar → si las 18 desaparecen, re-aplicar `tools/e6_patch_save.py patch`. (c) Índices alfabéticos del álbum: `CARD_Top_S`/`CARD_SamePict_S` no se tocaron. (d) Borrar los ISOs de prueba viejos de `trabajo/` (~2,4 GB).
 
 ---
 
@@ -198,3 +191,50 @@ frame), así que agrandarlo no mueve nada que la función lea.
   módulo; verificado por sectores (1105 cambiados, los 1105 nombrados por el plan).
 - `trabajo/e6/save_probe.py` y `trabajo/e6/save_probe2.py` — las sondas que encontraron la tabla
   (mapa de densidad + búsqueda por stride con las cartas del deck como anclas).
+
+## 11. Qué seguiría (después de E6)
+
+1. **Cierre de entrega.** La rama `spike/e1-test` acumula 23 commits desde `main`, por encima del slice revisable de ~400 líneas: conviene partirla en PRs encadenados (spikes E0-E3 / E1-test / E5 / E6) o al menos publicar E6 solo. Decisión del usuario: push/PR/merge. Falta además una sección de README con *cómo se reconstruye* el ISO de las 18 (`tools/e6_build_18.py container` → `iso`) y el save (`tools/e6_patch_save.py patch`).
+2. **E7 (opcional, el reto real que queda): que las cartas *actúen*.** El port es de datos; los efectos de TF1 viven en código de motor por carta. Para que las 18 tengan su efecto y para que las 11 fusiones se puedan invocar habría que averiguar si TF1 guarda recetas de fusión en datos (`duelsys/*.ehp`) y cómo se cablea un efecto en `libduel_eng.prx`/`libduel_mgr.prx` (los módulos son ELF sin cifrar, o sea que es abordable, pero es una fase grande y de riesgo alto). Alcance a decidir con una pregunta al usuario antes de empezar.
+3. **Pendientes menores.** (a) Obtener las 18 *sin* parchear el save: existe `libpassword.prx` (máquina de contraseñas) y `libshop.prx`, así que la vía "comprarlas" o "contraseña" es investigable; hoy las cartas nuevas tienen `password = 0`. (b) El juego puede reescribir el save con 2480 registros al guardar → si las 18 desaparecen, re-aplicar `tools/e6_patch_save.py patch`. (c) Índices alfabéticos del álbum: `CARD_Top_S`/`CARD_SamePict_S` no se tocaron. (d) Borrar los ISOs de prueba viejos de `trabajo/` (~2,4 GB).
+
+---
+
+## 12. Pendientes anotados por el usuario (cierre de E6)
+
+### A. El arte está equivocado: hoy las 18 usan el arte de un donante
+
+Estado actual: cada carta copia la entrada CIP de su `arte_donante` (columna del TSV), o sea la
+**imagen de otra carta HÉROE existente**; el slot propio de cada CardID nuevo estaba en cero.
+
+Aclaración técnica central: **en TF1 el nombre de la carta está pintado dentro de la imagen**, así que
+"editar el nombre en el arte" no es una operación aparte del arte: hay que **reemplazar la imagen
+entera** de la carta. Eso deja tres caminos, de más barato a más caro:
+
+1. **Copiar la imagen de otro juego de la saga** que la tenga en el mismo formato de contenedor
+   (Tag Force 2/3, otra entrega con los HÉROE Enmascarado): sería sólo una entrada CIP nueva.
+2. **Generar la imagen** con el marco y el formato del juego y el nombre renderizado en español,
+   usando la ilustración de la wiki como insumo.
+3. Usar tal cual una **foto/scan de la wiki**: es un insumo para la ilustración, no un reemplazo
+   directo (no tiene el formato, el encuadre ni el texto del juego).
+
+Antes de prometer nada hay que **leer el formato de imagen de los `cardh_s.cip`/`cardm_s.cip`**
+(insumo disponible: `referencia/CIPTool/CIPTool.cpp`, que ya documenta la tabla de offsets del
+contenedor). Es una fase aparte (E8), no parte del port de datos.
+
+### B. Probar los efectos de Cambio de Máscara necesita un deck HÉROE
+
+El usuario va a mandar **una receta de Jaden (deck HÉROE) de este TF1**; las cartas se agregan a su
+colección con la **misma vía que las 18**: entradas de propiedad en la tabla del save (§10.2). Sus
+índices son < 2480, así que **no hace falta ningún parche extra** (ni de módulo ni de extensión de
+tabla): alcanza con escribir `flag=0x04, copies=N, level=3` en el índice de cada CardID.
+
+Lo que ya tiene para esa prueba: las 4 mágicas de la fase (Cambio de Máscara `4704`, Cambio de
+Máscara II `4721`, Cambio de Forma `4726`, Carga de Máscara `4730`). Lo que falta son los
+**monstruos HÉROE** (E-HERO/D-HERO) que son el objetivo del buscador por atributo.
+
+Cuando llegue la receta, el orden es: (1) resolver cada carta por nombre a su CardID → índice
+interno en el contenedor prístino; (2) conceder la propiedad en el save; (3) recién entonces probar
+si "Cambio de Máscara" **ejecuta** algo — hoy no ejecuta efecto (es código de motor, §11.2).
+
+---
