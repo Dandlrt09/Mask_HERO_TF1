@@ -1,7 +1,7 @@
 # ESTADO — Spike E6: portar las 18 cartas HÉROE Enmascarado
 
 Fecha: sesión del cierre de E5 + arranque de E6 (decisión de layout y build offline hechos).
-Estado: **el build está hecho y verificado offline: contenedor de 2498 registros y `trabajo/e6/TF1-E6-18.iso` (commit `8a89d18`). Quedan T13 (prueba del usuario en PPSSPP) y T14 (propiedad en el save, bloqueada esperando la copia en `trabajo/save/`).**
+Estado: **las 18 cartas están construidas y verificadas, y el jugador ya las posee en el save (`trabajo/e6/DATA0.18`); el ISO incluye los parches de módulo que levantan el límite de 2480 índices del juego. Queda T13: la prueba del usuario en PPSSPP (§9).**
 Nada del ISO original fue modificado; todo el trabajo vive en copias (`trabajo/`).
 
 Continúa a `ESTADO-E5-limite.md` (estrategia C, cerrada y verificada) y a `ESTADO-E0.md` §1 (alcance).
@@ -58,8 +58,9 @@ Mover un archivo es legal: su identidad es el registro de directorio; hay que re
 | T12 | Construir el contenedor de 2481+18 registros (Prop/Genre/Pass/Indx/Name/Desc/IntID) y verificar que los 2480 previos no cambian | **hecha** |
 | T12b | Liberar espacio en el ISO y reubicar el contenedor (ver §4) | **hecha (opción A)** — ya no bloqueada |
 | T12c | ISO final: contenedor reubicado + alias de arte en `cardh_s.cip`/`cardm_s.cip` + motor C2 + verificación offline | **hecha** |
-| T13 | Prueba del usuario: las 18 visibles en el álbum (nombre, arte, ATK/DEF, nivel) y una en duelo | pendiente — prueba del usuario sobre `trabajo/e6/TF1-E6-18.iso` |
-| T14 | Editar el save/álbum para que el jugador posea las 18 (vía elegida para obtenerlas) | bloqueada — espera la copia del save en `trabajo/save/` |
+| T13 | Prueba del usuario: las 18 visibles en el álbum (nombre, arte, ATK/DEF, nivel) y jugables | **pendiente** — protocolo en §9, con `trabajo/e6/TF1-E6-18.iso` + `trabajo/e6/DATA0.18` |
+| T14 | Editar el save para que el jugador posea las 18 | **hecha** — `tools/e6_patch_save.py` (§10) |
+| T15 | Levantar el límite de 2480 índices del juego (frame del álbum + los dos clamps) | **hecha** — 4 palabras de módulo (§10.4) |
 
 ## 6. Plan de build (para no re-derivar; es el spec que se le pasó al worker cancelado)
 
@@ -83,6 +84,9 @@ Herramientas: `tools/e6_build_18.py` (constructor, ya escrito: implementa los pa
 - **L7 (usuario, textual).** «Expliame bien estas opciones» (pedido sobre las opciones de espacio en el ISO) y «Editar mi save (te paso copia)» (vía de obtención elegida, T14).
 - **L8 (hallazgo).** El contenedor creció a 555 sectores contra 550 asignados y el ISO base no tiene región contigua libre (sólo LBA 0..21, que es metadata de ISO9660 y no se puede usar); por eso el build necesita reubicar el contenedor. Decisión: opción A (ver §4/§5). E1/E5 no tuvieron este problema porque su carta única entraba en la holgura de 1184 B.
 - **L9 (build).** `tools/e6_build_18.py` construye el contenedor y el ISO, y verifica ambos (ver §9 y el commit `8a89d18`). Se corrigieron dos errores propios de contabilidad de la verificación antes de la pasada final; el artefacto no cambió. Con esto T12, T12b y T12c quedan hechos y el corte queda en T13 (prueba del usuario) y T14 (propiedad en el save).
+- **L10 (usuario, textual).** «[Image#1] es esto lo que tengo que copiar?» (la carpeta de savedata, `ULES006000001`) y luego «Prueba otra vez» tras los tres pasos pedidos. Resultado: el `DATA0` llegó **en texto plano** (65536 B, entropía 1,37 en vez de 7,95) — la vía `EncryptSave = False` funcionó sin implementar cripto (ver §10.1).
+- **L11 (hallazgo).** Con el save legible se identificó la tabla de propiedad del save por sus 35 entradas no nulas (exactamente las 35 cartas distintas del deck) y, con ella, el **bloqueo real** del port: el array `CardID[índice]` que arma el álbum vive en un frame de 6000 B que termina justo donde termina el array de 2480 entradas, así que los índices 2480..2497 desbordaban la pila del llamador (ver §10.3). El test de E5 con **una** carta había pasado justo porque caía adentro del frame.
+- **L12 (decisión + build).** Se eligió la vía que **no pierde ninguna carta**: extender la tabla del save en la cola libre que sigue a los 2480 registros, y subir el límite del juego con 4 palabras de módulo (frame del álbum y su epilogue, más los dos `slti …,2480`). `tools/e6_patch_save.py` concede las 18 (54 bytes cambiados, todos dentro de la extensión) y el ISO se reconstruyó y verificó por sectores (1105/1105 nombrados por el plan). Commit `9781db0`; artefactos y protocolo en §9 y §10.5.
 
 ## 8. Entrega (corte de slice)
 
@@ -97,9 +101,11 @@ Slice de E6 (las 18), con sus propios commits de unidad de trabajo:
 
 - `aebb888` / `b69bc37` (sesión previa): tabla de contenido y analizador de espacio
 - `8a89d18` feat(e6): construye la base de datos de 18 cartas y el ISO de prueba verificado (`tools/e6_build_18.py`)
-- este commit (`docs(e6)`): actualiza este documento con el corte del slice
+- `6964825` docs(e6): registra el build del slice (§4/§5/§7/§9)
+- `9781db0` feat(e6): concede la posesión de las 18 y levanta el límite de 2480 índices (`tools/e6_patch_save.py` + los 4 parches de módulo)
+- este commit (`docs(e6)`): agrega §10 y actualiza el corte del slice
 
-**El corte de entrega queda acá**: T12, T12b y T12c hechos y verificados offline; el slice se cierra con T13 (prueba del usuario) y T14 (propiedad en el save). Los ISO de prueba viven en `trabajo/` y están en `.gitignore`. Push, PR y merge son decisión del usuario: nada se subió.
+**El corte de entrega queda acá**: T11..T15 hechos y verificados offline; el slice se cierra con T13 (prueba del usuario). Los ISO de prueba y el save parcheado viven en `trabajo/` y están en `.gitignore`. Push, PR y merge son decisión del usuario: nada se subió.
 
 ---
 
@@ -107,11 +113,79 @@ Slice de E6 (las 18), con sus propios commits de unidad de trabajo:
 
 Protocolo:
 
-1. Abrir `trabajo/e6/TF1-E6-18.iso` en PPSSPP con el idioma de la interfaz del juego en español.
-2. Arrancar desde una pantalla nueva y **no cargar un save state viejo** (un save state sobreescribe RAM y daría un falso negativo).
-3. Comprobar: (a) el juego arranca; (b) el álbum y el editor de deck siguen mostrando las cartas propias del jugador sin cambios; (c) un duelo arranca y se juega.
+1. **Backup** del `DATA0` que hoy tenés en el memstick (`ppsspp_win/memstick/PSP/SAVEDATA/ULES006000001/DATA0`): copialo a `DATA0.orig`. Después copiá `trabajo/e6/DATA0.18` sobre `DATA0` (mismo nombre, mismo tamaño).
+2. Abrir `trabajo/e6/TF1-E6-18.iso` en PPSSPP con el idioma de la interfaz del juego en español y con `EncryptSave` **apagado**.
+3. Arrancar desde una pantalla nueva y **no cargar un save state viejo** (un save state sobreescribe RAM y daría un falso negativo).
+4. Comprobar: (a) el juego arranca; (b) el álbum muestra las 18 cartas nuevas con nombre, arte, ATK/DEF y texto; (c) tus 35 cartas siguen intactas; (d) las 18 se pueden agregar a un deck sin ícono de prohibida; (e) un duelo arranca y una de ellas se invoca.
+
+Qué reportar si algo falla (para acotar el diagnóstico): ¿las 18 aparecen en el álbum? ¿aparecen con el nombre/arte correctos? ¿se pueden agregar al deck? ¿el duelo arranca?
 
 Expectativas conocidas que **no** son fallos:
 
 - Los efectos de las cartas no se ejecutan: el port es de datos (nombre, arte, ATK/DEF, tipo/atributo/nivel, texto). TF1 mantiene los efectos de carta como código de motor, no como datos.
-- Las 18 cartas no pueden aparecer en el álbum hasta que T14 conceda la propiedad, porque el álbum lista solo las cartas poseídas.
+- Las invocaciones por Fusión no existen: no hay recetas de fusión para las 11 fusiones (Cambio de Máscara y sus variantes tampoco ejecutan su efecto).
+
+---
+
+## 10. T14/T15 — posesión en el save y el límite de 2480 índices (referencia medida)
+
+### 10.1 El save de TF1 está cifrado; PPSSPP lo escribe en texto plano
+
+El `DATA0` del jugador venía cifrado con el esquema de savedata de PSP (KIRK/AES con una *game key*
+por juego): 65552 B = 16 B de prefijo + 65536 B de payload, entropía ~7,95. **No hace falta
+implementar la cripto**: con `EncryptSave` apagado en PPSSPP (Ajustes → Sistema, o `[System]
+EncryptSave = False` en `ppsspp.ini`), el emulador descifra al cargar —tiene la key que el propio
+juego le pasa— y reescribe el save **en texto plano**. El camino de carga lo decide el campo
+`SAVEDATA_PARAMS` del `PARAM.SFO`. Save en texto plano = **65536 B exactos**.
+
+### 10.2 Formato de la tabla de propiedad (medido)
+
+Tabla de **2480 registros de 4 bytes** en el offset `0x155C`, stride 4, **indexada por índice
+interno** (0..2479):
+
+| byte | campo |
+|---|---|
+| 0 | `0x04` = poseída; `0x00` = no |
+| 1 | copias poseídas |
+| 2 | nivel de límite: 3 ilimitada, 2 semi, 1 limitada, 0 prohibida |
+| 3 | 0 |
+
+Es la misma tabla que lee el lector de límites del motor (en E5: para un índice ≥2480 lee palabra
+cero → prohibida; de ahí el parche C2). **Identificación**: las 35 entradas no nulas coinciden
+exactamente con las 35 cartas distintas del deck inicial (28 con 1 copia, 7 con 2). Los **3079 bytes
+siguientes** (`0x3C1C..0x4823`) están en cero y sin referencias → la tabla se puede extender.
+
+### 10.3 El bloqueo: el array del álbum tiene lugar para 2480 índices
+
+`libcardalbum.prx` vma `0x3D38` (`addiu sp,sp,-6000`) construye en la pila el mapa
+`CardID[índice]` (u16, stride 2, base `sp+0x40E`) recorriendo los CardIDs 4007..6957 vía
+`CARD_IntID`, y después lo recorre con `slti s1,2480` (vma `0x3E6C`). El array termina en
+`sp+0x1770` = exactamente el final del frame: **sólo entra el índice 2480**; 2481..2497 escriben
+hasta 12 B más allá del frame (pila del llamador). El test de E5 con una sola carta cayó justo
+adentro, por eso pasó sin problemas.
+
+### 10.4 Parches aplicados (commit `9781db0`)
+
+| archivo | offset | antes | después | por qué |
+|---|---|---|---|---|
+| `gmodule/libcardalbum.prx` | `0x3D98` | `0x27bde890` | `0x27bde860` | frame 6000 → 6048 B (las 2498 entradas terminan en `sp+0x1792`) |
+| `gmodule/libcardalbum.prx` | `0x3F84` | `0x27bd1770` | `0x27bd17a0` | epilogue que cierra el frame: +6000 → +6048 |
+| `gmodule/libcardalbum.prx` | `0x3ECC` | `0x2a2309b0` | `0x2a2309c2` | bucle de la lista poseída: 2480 → 2498 |
+| `gmodule/libduel_draw.prx` | `0x54314` | `0x2a2309b0` | `0x2a2309c2` | clamp del cursor de la lista: 2480 → 2498 (es un clamp de UI, no un tamaño de array) |
+
+Cada palabra se localiza por búsqueda exacta del word dentro del módulo, con **afirmación de
+unicidad** (si aparece más de una vez, el build se detiene). Además se verificó que la función del
+frame **no lee argumentos del stack** del llamador (sus 16 accesos `sp`-relativos caen dentro del
+frame), así que agrandarlo no mueve nada que la función lea.
+
+### 10.5 Artefactos
+
+- `tools/e6_patch_save.py` — `show` documenta el estado del save; `patch` escribe los 18 registros
+  (`04 01 03 00`) en `0x3C1C + 4i` y verifica que las 35 entradas previas queden byte a byte
+  idénticas y que **sólo** cambien bytes dentro de la extensión de 72 B.
+- `trabajo/e6/DATA0.18` (65536 B, sha256 `1b6292e0dd8ac37a1892efc4489436c05afc90382a08a0cbd33c913cf6d670a6`)
+  — el save con las 18 concedidas.
+- `trabajo/e6/TF1-E6-18.iso` — contenedor reubicado, motor C2, arte aliasado y los 4 parches de
+  módulo; verificado por sectores (1105 cambiados, los 1105 nombrados por el plan).
+- `trabajo/e6/save_probe.py` y `trabajo/e6/save_probe2.py` — las sondas que encontraron la tabla
+  (mapa de densidad + búsqueda por stride con las cartas del deck como anclas).
