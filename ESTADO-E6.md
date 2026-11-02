@@ -1,7 +1,7 @@
 # ESTADO — Spike E6: portar las 18 cartas HÉROE Enmascarado
 
 Fecha: sesión del cierre de E5 + arranque de E6 (decisión de layout y build offline hechos).
-Estado: **las 18 cartas están construidas y verificadas, y el jugador ya las posee en el save (`trabajo/e6/DATA0.18`); el ISO incluye los parches de módulo que levantan el límite de 2480 índices del juego. Queda T13: la prueba del usuario en PPSSPP (§9).**
+Estado: **E6 cerrado y validado por el usuario en PPSSPP (T13).** Las 18 cartas están portadas, el jugador las posee (`DATA0.18`), el juego las muestra con nombre/arte/ATK/DEF/texto, se agregan al deck y se juegan en duelo. Queda el cierre de entrega (push/PR, decisión del usuario) y, si se quiere que las cartas *actúen*, la fase de efectos (§11).
 Nada del ISO original fue modificado; todo el trabajo vive en copias (`trabajo/`).
 
 Continúa a `ESTADO-E5-limite.md` (estrategia C, cerrada y verificada) y a `ESTADO-E0.md` §1 (alcance).
@@ -58,7 +58,7 @@ Mover un archivo es legal: su identidad es el registro de directorio; hay que re
 | T12 | Construir el contenedor de 2481+18 registros (Prop/Genre/Pass/Indx/Name/Desc/IntID) y verificar que los 2480 previos no cambian | **hecha** |
 | T12b | Liberar espacio en el ISO y reubicar el contenedor (ver §4) | **hecha (opción A)** — ya no bloqueada |
 | T12c | ISO final: contenedor reubicado + alias de arte en `cardh_s.cip`/`cardm_s.cip` + motor C2 + verificación offline | **hecha** |
-| T13 | Prueba del usuario: las 18 visibles en el álbum (nombre, arte, ATK/DEF, nivel) y jugables | **pendiente** — protocolo en §9, con `trabajo/e6/TF1-E6-18.iso` + `trabajo/e6/DATA0.18` |
+| T13 | Prueba del usuario: las 18 visibles en el álbum (nombre, arte, ATK/DEF, nivel) y jugables | **hecha — validada**: «Kind of possession card 53» (= 35 + 18), Trunk 18, texto y arte correctos, y duelo en curso con HÉROE ENMASCARADO HORNO en el campo y las fusiones en el deck de fusión (§7 L13) |
 | T14 | Editar el save para que el jugador posea las 18 | **hecha** — `tools/e6_patch_save.py` (§10) |
 | T15 | Levantar el límite de 2480 índices del juego (frame del álbum + los dos clamps) | **hecha** — 4 palabras de módulo (§10.4) |
 
@@ -87,6 +87,7 @@ Herramientas: `tools/e6_build_18.py` (constructor, ya escrito: implementa los pa
 - **L10 (usuario, textual).** «[Image#1] es esto lo que tengo que copiar?» (la carpeta de savedata, `ULES006000001`) y luego «Prueba otra vez» tras los tres pasos pedidos. Resultado: el `DATA0` llegó **en texto plano** (65536 B, entropía 1,37 en vez de 7,95) — la vía `EncryptSave = False` funcionó sin implementar cripto (ver §10.1).
 - **L11 (hallazgo).** Con el save legible se identificó la tabla de propiedad del save por sus 35 entradas no nulas (exactamente las 35 cartas distintas del deck) y, con ella, el **bloqueo real** del port: el array `CardID[índice]` que arma el álbum vive en un frame de 6000 B que termina justo donde termina el array de 2480 entradas, así que los índices 2480..2497 desbordaban la pila del llamador (ver §10.3). El test de E5 con **una** carta había pasado justo porque caía adentro del frame.
 - **L12 (decisión + build).** Se eligió la vía que **no pierde ninguna carta**: extender la tabla del save en la cola libre que sigue a los 2480 registros, y subir el límite del juego con 4 palabras de módulo (frame del álbum y su epilogue, más los dos `slti …,2480`). `tools/e6_patch_save.py` concede las 18 (54 bytes cambiados, todos dentro de la extensión) y el ISO se reconstruyó y verificó por sectores (1105/1105 nombrados por el plan). Commit `9781db0`; artefactos y protocolo en §9 y §10.5.
+- **L13 (usuario, textual).** «Todo validado. Dime que es lo que seguiria y guarda sesion» + tres capturas. **T13 cerrada.** Evidencia de las capturas: el editor de deck muestra **«Kind of possession card 53»** (= las 35 propias + las 18 nuevas, que es exactamente el número que concede el parche) y **Trunk 18**; la carta «CAMBIO DE MÁSCARA II» se ve como MÁGICA/JUEGO RÁPIDO con su arte y su texto en español; un duelo arranca y se juega (LP 5700 vs 6000, turno 24) con **HÉROE ENMASCARADO HORNO** (2200/1000) en el campo y su texto; el deck de fusión del duelo lista las fusiones nuevas (HÉROE DEL CONTRASTE CHAOS 3000/2600 entre ellas). Con esto E6 queda cerrado: T11..T15 hechas y la prueba del usuario pasada.
 
 ## 8. Entrega (corte de slice)
 
@@ -105,7 +106,15 @@ Slice de E6 (las 18), con sus propios commits de unidad de trabajo:
 - `9781db0` feat(e6): concede la posesión de las 18 y levanta el límite de 2480 índices (`tools/e6_patch_save.py` + los 4 parches de módulo)
 - este commit (`docs(e6)`): agrega §10 y actualiza el corte del slice
 
-**El corte de entrega queda acá**: T11..T15 hechos y verificados offline; el slice se cierra con T13 (prueba del usuario). Los ISO de prueba y el save parcheado viven en `trabajo/` y están en `.gitignore`. Push, PR y merge son decisión del usuario: nada se subió.
+**El corte de entrega queda acá**: T11..T15 hechas, verificadas offline y **validadas por el usuario en PPSSPP** (L13); el slice de E6 está cerrado. Los ISO de prueba y el save parcheado viven en `trabajo/` y están en `.gitignore`. Push, PR y merge son decisión del usuario: nada se subió.
+
+---
+
+## 11. Qué seguiría (después de E6)
+
+1. **Cierre de entrega.** La rama `spike/e1-test` acumula 23 commits desde `main`, por encima del slice revisable de ~400 líneas: conviene partirla en PRs encadenados (spikes E0-E3 / E1-test / E5 / E6) o al menos publicar E6 solo. Decisión del usuario: push/PR/merge. Falta además una sección de README con *cómo se reconstruye* el ISO de las 18 (`tools/e6_build_18.py container` → `iso`) y el save (`tools/e6_patch_save.py patch`).
+2. **E7 (opcional, el reto real que queda): que las cartas *actúen*.** El port es de datos; los efectos de TF1 viven en código de motor por carta. Para que las 18 tengan su efecto y para que las 11 fusiones se puedan invocar habría que averiguar si TF1 guarda recetas de fusión en datos (`duelsys/*.ehp`) y cómo se cablea un efecto en `libduel_eng.prx`/`libduel_mgr.prx` (los módulos son ELF sin cifrar, o sea que es abordable, pero es una fase grande y de riesgo alto). Alcance a decidir con una pregunta al usuario antes de empezar.
+3. **Pendientes menores.** (a) Obtener las 18 *sin* parchear el save: existe `libpassword.prx` (máquina de contraseñas) y `libshop.prx`, así que la vía "comprarlas" o "contraseña" es investigable; hoy las cartas nuevas tienen `password = 0`. (b) El juego puede reescribir el save con 2480 registros al guardar → si las 18 desaparecen, re-aplicar `tools/e6_patch_save.py patch`. (c) Índices alfabéticos del álbum: `CARD_Top_S`/`CARD_SamePict_S` no se tocaron. (d) Borrar los ISOs de prueba viejos de `trabajo/` (~2,4 GB).
 
 ---
 
