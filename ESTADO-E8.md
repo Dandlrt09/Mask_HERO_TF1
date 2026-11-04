@@ -563,3 +563,242 @@ completo, con la franja reducida a 2 filas.
 - `trabajo/e8/INTERPRETACION-E8-M2.md` — tabla de lectura del test.
 - `trabajo/e8/window_s0002.png`, `_proof_help_*.png`, `_proof_parts.png` — pruebas del dialecto
   contra assets reales del juego.
+
+---
+
+## 9.16 El arte grande no encaja: el motor PLIEGA la textura (ronda E8-14)
+
+Estado al cerrar la sesión (2026-11-02). **Lo entregado y validado antes sigue vigente**: arte de las
+18 en `cardm` (campo/duelo), editor de deck y barra del nombre. Lo que falta es **la geometría exacta
+del recuadro grande** (`cardh`) y el **nombre en español** en la barra.
+
+### 9.16.1 Causa medida: el motor no dibuja la textura plana
+
+El recuadro **no** es un blit 1:1 de la textura 128x62. Con una **sonda de coordenadas** (patrón de
+degradado) probada in-game se leyó el mapeo real:
+
+| Zona de la textura | Va a |
+| --- | --- |
+| **`x0..77`** (78x62) | **mitad ARRIBA** del recuadro, ancho completo · ~76% del alto |
+| **`x78..127`** (50x62) | **franja ABAJO** (~24%) · y de esa zona solo se usan las filas de arriba |
+| banda del nombre `x80..127, y40..59` | **barra superior** (de ahí sale el texto del nombre) |
+
+Evidencia: `trabajo/e8/_probe/p1.png`, `trabajo/e8/_probe2/q2.png`, informe
+`trabajo/e8/E8-CARDH-MAP.md`. Medición fina de la sonda de marcadores (Acido, `q2.png`): fin de la
+mitad de arriba en **75,7%**; línea verde (textura `x=39`) en **44,6%** del ancho; línea azul
+(`y=31`) en **41%**; la franja inferior usa **otra escala horizontal** (marcadores en 27% y 79,5%,
+no en el 50% esperado).
+
+**Consecuencia**: la mitad de arriba y la franja de abajo tienen **escalas horizontales distintas**.
+Por eso el arte de abajo queda corrido. No es un simple recorte.
+
+### 9.16.2 Lo que NO es el problema (descartado con evidencia)
+
+- **La imagen de EDOPro**: el arte nativo de TF1 también se ve "recortado" así (mapeo interno).
+- El códec DXT1, el espacio del slot (4096 B) y la pérdida de color: no intervienen.
+- `FIX3` (cover a 2:1) y `FIX9` (transposición) fallaron; `FIX4` (plegado 77,5%) fue "el más fiel",
+  `FIX8` quedó "casi".
+
+### 9.16.3 Próximo paso (a ejecutar en sesión nueva)
+
+1. Con los números de `PROBE2`, **pre-compensar cada mitad a su escala**: partir el arte en 75,7% /
+   24,3%, estirar la mitad de arriba ~12% en horizontal y ajustar la franja inferior para que encaje
+   con la de arriba.
+2. Reconstruir desde `TF1-E8-FINAL-D.iso` con el parche quirúrgico (36 sectores, extent `cardh`
+   3646..8748) y validar in-game.
+3. **Nombre en español** en la banda `x80..127, y40..59` (glifos nativos o fuente propia; decisión
+   §9.14).
+
+### 9.16.4 ISOs y artefactos vigentes
+
+- **Mejor hasta ahora**: `trabajo/e8/TF1-E8-FIX8.iso` (sha256 `64ca280ca361a9defa8d1a65…`) — "casi".
+- Sondas: `trabajo/e8/TF1-E8-PROBE.iso` (`984a81b58cb7822396264a89…`),
+  `trabajo/e8/TF1-E8-PROBE2.iso` (`325bb72de352471e1a4f76bc…`).
+- Descartados: `FIX`, `FIX2`, `FIX3`, `FIX4`, `FIX5`, `FIX6`, `FIX7`, `FIX9`.
+- Base intacta: `trabajo/e8/TF1-E8-FINAL-D.iso` (vigente, validado) y `trabajo/e6/TF1-E6-18.iso`.
+- Capturas del usuario: `trabajo/e8/_nat/`, `_prev/`, `_probe/`, `_probe2/`.
+- Save: `trabajo/e6/DATA0.hero`.
+
+### 9.16.5 Sin commitear (de sesiones previas)
+
+`ESTADO-E6.md` (M), `tools/e6_patch_save.py` (M), `datos/receta_hero.tsv` (nuevo) — la receta HÉROE
+de Jaden concedida en el save. **No tocados**, decisión del usuario. Este E8-CARDH-MAP.md y los ISOs
+viven en `trabajo/` (gitignored).
+
+### 9.16.6 Ronda E8-14 — mapeo medido con números e ISO candidato (G1)
+
+**Limpieza**: borrados los 8 ISOs descartados (`FIX`, `FIX2`..`FIX7`, `FIX9`) — **6094 MiB** liberados.
+Quedan el ISO prístino del juego, el de Tag Force Special (referencia), `TF1-E6-18.iso` (base),
+`TF1-E8-FINAL-D.iso` (validado), `TF1-E8-FIX8.iso` y las dos sondas.
+
+**Método**: la textura-sonda se **recuperó del propio ISO** (`iso_replace.read_iso_file` +
+`tf1_art.decode_cardh_slot`) y se midió contra la captura `q2.png` con código, no a ojo. La cifra
+**44,6% de §9.16.1 era un borde de recuadro mal medido**: la línea lima (textura `x=39`) cae en
+**50,4% ≈ 39/77**. La **ventana superior es un 3x uniforme** de textura `x0..77` (78x62 → 234x186 px).
+
+**Corrección grande**: la franja inferior **no** usa la escala de 78. **Tilita la región derecha
+`x78..127` cada 144 px** (`u = 78 + (X − 144·t)/2.88`); tile0 usa filas `0..17,5` y tile1 filas
+`19,8..37,3` (disjuntas). Eso explica el «la franja de abajo se corre a la derecha» de `FIX8`.
+
+**ISO candidato**: `trabajo/e8/TF1-E8-G1.iso` (sha256 `533c0a9f325be2f711b7975448bbd795…`),
+**36 sectores** cambiados, todos dentro del extent `cardh` (LBA `8712..8747`), **0 fuera**; FINAL-D
+intacto (mismo tamaño). Informe: `trabajo/e8/E8-14-SOLVE.md`.
+
+**Verificación (no por checksum)**: modelo forward vs `art_src/<cid>.png` con MAE **18,7..31,8**
+(piso del códec DXT1), validado además en la captura independiente `_cmp_sq_u07.png` (MAE 34,8).
+
+### 9.16.7 Ronda E8-14 G2 — pulido tras el test in-game (costura + suavizado)
+
+**Test del usuario de G1**: «Si señor ahora si» — el recuadro grande por fin entra completo y
+continuo. Dos defectos finos reportados:
+
+1. «se ve un tanto mas pixeleado a comparación con otra [carta nativa] … esta se ve mas "suave"».
+2. Un «trozito» a quitar: una banda oscura con una franja verde en el borde.
+
+**Causa del trozito**: la inversión de G1 sólo escribía los texeles que su modelo muestrea; las
+filas 17,5..19,6 y 38..39 del carril (y `x110..127` de las filas 20..36) conservaban la referencia
+nativa de FINAL-D (Bladedge), y asomaban en la costura entre los dos tiles.
+
+**ISO `trabajo/e8/TF1-E8-G2.iso`** (sha256 `9c49a787926c2472f289683920a2f46d51dcbf9766a66ed7d311b2ec70c9f030`):
+- **Fix A**: el carril `x78..127, y0..39` se escribe como una sola pieza contigua (tile0 filas
+  0..18, tile1 filas 19..39) → 0 píxeles de clave verde muestreados en los 18 (medido).
+- **Fix B**: cada texel es el **promedio por área** del arte 624x624 sobre su huella exacta
+  (`resize_area`), en vez del muestreo por vecino sobre un intermedio de 234 de G1. MAE vs
+  `art_src`: **12,4..20,9** (G2 ≤ G1 en 18/18).
+- Banda del nombre `x80..127, y40..59` byte-idéntica a FINAL-D.
+- **36 sectores**, LBA `8712..8747`, todos dentro del extent `cardh`, 0 fuera. Evidencia visual:
+  `trabajo/e8/_probe2/g2_seam_g1_vs_g2_4661_3x.png` (izq G1 con la línea verde / der G2 sin ella).
+
+**Pendiente**: confirmación in-game de G2. El pixelado se reduce pero no desaparece: la textura es
+128x62 mostrada a ~3x, el mismo presupuesto nativo. Queda luego el **nombre en español** en la banda
+(x80..127, y40..59; decisión §9.14).
+
+### 9.16.8 El «trozito»: causa medida y G5
+
+Tras el test de G2 («el arte quedó bien»), el usuario reportó que **seguía un «trozito»**: una franja
+de color raro entre la barra del nombre y el resto, en las **18** (mágicas y monstruos).
+
+**Diagnóstico en 3 pasos (sin adivinar):**
+1. **G3** — se pintó la región derecha `x78..127` en bandas por fila (solo 2 cartas). El trozito
+   **no cambió de color**; la barra del nombre sí (rojo/blanco) y la franja inferior también
+   (magenta/cyan/amarillo/azul → confirma el modelo de tiles de §9.16.6). ⇒ el trozito **no** sale
+   de `x78..127`.
+2. **G4** — se pintó la región izquierda `x0..77` en bandas. El trozito se volvió **naranja** ⇒
+   sale de `x0..77`, filas **56..61**.
+3. **Causa raíz**: en una carta **nativa**, las filas `60..61` de `x0..77` contienen el **color de la
+   banda del nombre** (naranja `206,113,33`) o negro; en la nuestra contenían **arte**. El motor
+   dibuja esas filas como una franja pegada a la barra y en nativo se confunden con la barra.
+
+Dato clave de seguridad: las filas `58..61` del lienzo base caen por **debajo de la costura**
+(`v=58 → Y≈180.8`, costura en `Y≈180`), o sea **no son visibles en el recuadro** — reescribirlas no
+lo afecta.
+
+**Fix G5** (`trabajo/e8/TF1-E8-G5.iso`, sha256 `ce946fc9…`): en los 18 slots, filas `58..61` ←
+verbatim de las filas `58..61` de Bladedge (6477, slot 4512, nativo intacto). **28 sectores**, todos
+dentro del extent `cardh`, 0 fuera.
+
+**Test de G5 (usuario)**: el trozito **desapareció**, pero apareció una **línea rosa en la costura**
+del recuadro (en las 18). Causa: la fila `58` vive en el bloque DXT1 `56..59`, que **sí** se ve en la
+costura; al reescribir `58..59` cambió ese bloque visible. Las filas `60..61` están en el bloque
+`60..63` (por debajo de la costura, `Y≥186`), así que sólo ellas son seguras.
+
+**Fix G6** (`trabajo/e8/TF1-E8-G6.iso`, sha256
+`571d3f784e9e0497ef5f9ca2d1b7b89f9abdc4b485b4b10655389d3c2fc98dee`): ídem G5 pero **sólo filas
+`60..61`** ← Bladedge (deja `58..59` = arte para no tocar el bloque visible). **28 sectores**, todos
+dentro del extent, 0 fuera.
+
+**Test de G6 (usuario)**: «Correcto, arte completado al 50%» → el trozito y la línea rosa
+resueltos. Geometría del arte **cerrada**.
+
+### 9.16.9 Texto de arriba (banda del nombre) — G7
+
+Segunda mitad: el nombre en la barra. La banda nativa (`cardh` x80..127, y40..59) trae el nombre en
+1–2 líneas de glifos diminutos (crema/amarillos sobre naranja; p.ej. Bladedge = «Elemental HERO» /
+«Bladedge»). El motor dibuja esa banda en la barra superior (probado in-game en G3) y **no** afecta
+al recuadro.
+
+**ISO `trabajo/e8/TF1-E8-G7.iso`** (sha256
+`52bd9c1a21b0ee3ef5c9ae3aa7f24ef6297cce84d6259da2e04952ca6fbb0673`): partiendo de G6, los 18
+slots reciben el **nombre en español** (`datos/cartas_18.tsv`), partido en 2 líneas y ajustado al
+ancho de 44 px de la banda. **18 sectores**, LBA `8713..8747`, todos dentro del extent, 0 fuera.
+Informe: `trabajo/e8/E8-15-NAMES.md`.
+
+**Honestidad (importante)**:
+1. **Fuente FALLBACK**, no nativa. La extracción de glifos nativos se intentó y se descartó: los
+glifos nativos son de trazo de 1 px, altos ~5-6 px, promediados por DXT1 y autoescalados a lo ancho
+de la banda (la misma letra a distinta escala) → no se recuperan bitmaps ni avances. Se usó una
+fuente condensada propia con las métricas medidas. Se ve más gruesa que la nativa fina.
+2. El fondo de la barra pasó de naranja (donante) al color de marco nativo por clase (lila=fusión,
+naranja=efecto, verde=mágica) → cambio visible, no pedido explícitamente (pero más correcto).
+3. El mapeo banda→barra no está del todo fijado (la banda nativa de 2 líneas se ve como barra de 1
+línea), así que **requiere confirmación in-game**.
+
+Evidencia visual: `trabajo/e8/_probe2/g7_sheet_all18.png`, `g7_native_vs_g7_4661_*_8x.png`,
+`g7_band_4697_8x.png` (nombre largo, escala 0,77), `g7_band_4704_8x.png` (mágica/verde).
+
+**Test de G7 (usuario)**: «está terrible» — la barra mostró el renglón 1 grande a la izquierda y el
+renglón 2 chico a la derecha, desalineados.
+
+**Causa y decisión (verificada con la nativa Flame Wingman)**: el motor lee los **dos renglones de la
+banda como las dos mitades horizontales de la barra** (renglón 1 → mitad izquierda, renglón 2 → mitad
+derecha) con **una sola escala**. G7 falló porque ajustó cada renglón al ancho completo por separado.
+Además: la barra usa el nombre **en inglés** incluso en el cliente español (confirmado con la nativa
+Clayman, `Elemental HERO Clayman`) — la banda de `cardh` es independiente del idioma. Los nombres en
+inglés están en `trabajo/e8/art_src/manifest.tsv` (`nombre_en`).
+
+**ISO `trabajo/e8/TF1-E8-G8.iso`** (sha256
+`da9185931649b8c4b868d4c2b476c0cad20c23e6061b519f354b8fb50c6c5180`): desde G6, los 18 slots con el
+**nombre en inglés**, partido en dos renglones a la mitad (por longitud en píxeles) y **ambos a la
+misma escala** `S = 48 / max(w1,w2)`. Fondo nativo por clase (lila=fusión, naranja=efecto,
+verde=mágica). **18 sectores**, LBA `8713..8747`, todos dentro del extent, 0 fuera. Tabla de
+escalas en `E8-15-NAMES.md` §8. Los más ajustados: 4672/4681/4697 (`S=1.263`). Sigue siendo la
+**fuente fallback (b)**; la fuente nativa fina requeriría buscarla como atlas en otro asset.
+Pendiente test in-game.
+
+Evidencia visual G8: `trabajo/e8/_probe2/g8_bar_<cid>.png` (simulación de barra: renglón1+renglón2),
+`g8_sheet_all18.png`, `g8_native_vs_g8_4661.png`.
+
+**Test de G8 (usuario)**: «sigue viendo muy mal» — glifos demasiado **grandes y gruesos** (~2-3 px
+de trazo), y el renglón largo se metía bajo el ícono. La nativa usa glifos **diminutos de trazo 1 px**
+(~6 px de alto, ~4 px de avance).
+
+**Decisión del usuario (formato)**: usar el estilo corto de Arc-V Tag Force Special → **«M·HERO
+Anki»** y las mágicas en inglés.
+
+**ISO `trabajo/e8/TF1-E8-G9.iso`** (sha256
+`0776e9284491ae8e43dfa66ac34e4d7113a14436eef8c622003d7d798f6e3e5c`): desde G6, los 18 slots con
+nombres cortos (M·HERO Acid…M·HERO Fountain, C·HERO Chaos, Mask Change, Mask Change II, Form Change,
+Mask Charge), renderizados a la **escala natural de la fuente** (sin estirar): **cuerpo 6 px, trazo
+1 px, avance 4 px**, punto medio 1 px. Fondo nativo por clase. **18 sectores**, LBA `8713..8747`,
+todos dentro del extent, 0 fuera. Comparativa nativa 8x: `trabajo/e8/_probe2/g9_native_vs_g9_4661.png`
+(izq nativa fina / centro G9) — métricas ya comparables. Tabla en `E8-15-NAMES.md` §9.
+
+Sigue siendo **fuente fallback** (sans plano vs serif fina nativa; color plano vs antialiaseado por
+DXT1).
+
+**Test de G9 (usuario)**: «no se ve bien y hasta la tipografía es horrible»; además el trozito
+reapareció en otro color (el compositor de G9 reescribió las filas 60–61, que en G6 llevaban el
+patrón que lo camufla).
+
+### 9.16.10 Cierre de la fase de arte (decisión del usuario)
+
+Tras probar G7/G8/G9, el usuario decidió **dejar el texto del nombre para más adelante**. Por lo
+tanto:
+
+- **La geometría del arte queda CERRADA** en `trabajo/e8/TF1-E8-G6.iso` (arte validado in-game;
+  recuadro grande correcto, sin trozito ni línea de costura). La barra superior muestra todavía el
+  nombre del donante («Elemental HERO Bladedge»).
+- **Limpieza**: borrados los ISOs superados/de diagnóstico (G1, G2, G3, G4, G5, G7, G8) — **5332 MiB**.
+  Se conservan G6 (vigente) y G9 (último intento de nombre, por si se retoma).
+- **Pendiente de nombres** (retomable): el bloqueo es la **fuente**. La barra de TF1 **pre-renderiza**
+  el nombre dentro de la banda con una **serif fina**, sin fuente en runtime. Caminos evaluados:
+  (1) traer las bandas «M·HERO» del ISO de **Tag Force Special** (tiene esas cartas); (2) cosechar
+  glifos nativos de las bandas; (3) diseñar una serif propia. Lecciones dejadas: **no estirar el
+  texto** (engrosa los trazos 1 px); la banda se lee como **dos mitades** (renglón 1 → izq, renglón 2
+  → der) con una escala; métricas nativas ≈ cuerpo 6 px / trazo 1 px / avance 4 px; **no tocar las
+  filas 58–61** salvo con el patrón de la banda (rompe el camuflaje del trozito / toca el bloque
+  visible).
+
+**Entrega**: el arte está en `TF1-E8-G6.iso`. Sin commitear siguen `ESTADO-E6.md`,
+`tools/e6_patch_save.py` y `datos/receta_hero.tsv` (de sesiones previas). La entrega (PRs encadenados,
+README) sigue siendo decisión del usuario.
