@@ -19,9 +19,18 @@ the player's deck exactly, which is how the table was identified.
 
   show  SAVE [--ehp container]           print the current ownership
   patch SAVE OUT [--ehp container]       grant the 18 new indices, with verification
+  grant SAVE --out OUT [--recipe TSV]    grant an arbitrary card set (a deck recipe)
 
-The patch writes `04 01 03 00` (owned, 1 copy, Unlimited) at each new index and
+`patch` writes `04 01 03 00` (owned, 1 copy, Unlimited) at each new index and
 refuses to touch anything else: every pre-existing record must stay byte-identical.
+
+`grant` takes a recipe of `cardid<TAB>copies` rows (see `datos/receta_hero.tsv`),
+resolves each CardID to its internal index through the container's `CARD_IntID`,
+and sets only byte0 (`0x04`, owned) and byte1 (copies). It deliberately leaves
+byte2 (the limit level) untouched: the save already carries the game's real level
+for every index, and that is the byte the E5-C2 reader consumes. Refusing to
+invent a level is what keeps the banlist intact. A recipe that asks for more
+copies than the game's level allows, or for a Forbidden card, is rejected whole.
 """
 from __future__ import annotations
 
@@ -47,6 +56,8 @@ UNLIMITED = 3
 DEFAULT_SAVE = os.path.join(ROOT, "trabajo", "save", "ULES006000001", "DATA0")
 DEFAULT_OUT = os.path.join(ROOT, "trabajo", "e6", "DATA0.18")
 DEFAULT_EHP = os.path.join(ROOT, "trabajo", "e6", "cardinfo_spa_18.ehp")
+DEFAULT_RECIPE = os.path.join(ROOT, "datos", "receta_hero.tsv")
+NO_LIMIT = 3
 
 
 def sha256(data: bytes) -> str:
@@ -74,6 +85,42 @@ def index_to_cardid(ehp_path: str) -> dict[int, int]:
         idx = struct.unpack_from("<H", intid, slot * 2)[0]
         if idx:
             out.setdefault(idx, 4000 + slot)
+    return out
+
+
+def read_recipe(path: str) -> list[dict]:
+    """`cardid<TAB>copies<TAB>...` rows; `#` comments and a `cardid` header skipped."""
+    rows = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("#") or not line.strip():
+                continue
+            parts = line.rstrip("\n").split("\t")
+            if parts[0] == "cardid":
+                continue
+            rows.append({"cardid": int(parts[0]), "copies": int(parts[1]),
+                         "name": parts[2] if len(parts) > 2 else str(parts[0])})
+    return rows
+
+
+def cardid_to_index(ehp_path: str) -> dict[int, int]:
+    """CardID -> internal index, read from the container's CARD_IntID.
+
+    Every mapping is cross-checked against `CARD_Prop`, so a CardID the container
+    does not really carry is absent instead of silently pointing at index 0.
+    """
+    _, entries = cia.parse(open(ehp_path, "rb").read())
+    intid = cia.region(entries, "CARD_IntID").body
+    prop = cia.region(entries, "CARD_Prop").body
+    slots = len(prop) // 8
+    out = {}
+    for slot in range(len(intid) // 2):
+        idx = struct.unpack_from("<H", intid, slot * 2)[0]
+        if not 0 < idx < slots:
+            continue
+        card_id = struct.unpack_from("<i", prop, idx * 8)[0] & 0x1FFF
+        if card_id == 4000 + slot:
+            out[card_id] = idx
     return out
 
 
@@ -173,6 +220,118 @@ def patch(args) -> int:
     return 0
 
 
+def grant(args) -> int:
+    orig = open(args.save, "rb").read()
+    if len(orig) != SAVE_SIZE:
+        print(f"STOP: save is {len(orig)} bytes, expected {SAVE_SIZE} "
+              f"(is it the plaintext one? the encrypted save is 65552)")
+        return 1
+    data = bytearray(orig)
+    recipe = read_recipe(args.recipe)
+    if not recipe:
+        print(f"STOP: recipe {args.recipe} has no rows")
+        return 1
+    idmap = cardid_to_index(args.ehp)
+    print(f"save: {args.save} ({len(orig)} bytes, sha256 {sha256(orig)})")
+    print(f"recipe: {args.recipe} ({len(recipe)} cards)")
+    print(f"container: {args.ehp}")
+
+    # --- preconditions: build the whole plan before touching a byte ----------
+    problems, plan, seen = [], [], {}
+    for row in recipe:
+        card_id, copies, name = row["cardid"], row["copies"], row["name"]
+        idx = idmap.get(card_id)
+        if idx is None:
+            problems.append(f"CardID {card_id} ({name}) has no internal index in the container")
+            continue
+        if idx >= FIRST_NEW_INDEX:
+            problems.append(f"CardID {card_id} ({name}) sits at index {idx}, outside the base pool")
+            continue
+        if idx in seen:
+            problems.append(f"index {idx} is claimed by both {seen[idx]} and {name}")
+            continue
+        seen[idx] = name
+        if copies < 1:
+            problems.append(f"CardID {card_id} ({name}): copies must be >= 1, got {copies}")
+            continue
+        off = TABLE_OFFSET + idx * STRIDE
+        level = data[off + 2]
+        if level == 0:
+            problems.append(f"CardID {card_id} ({name}): index {idx} is Forbidden (level 0) in this save")
+            continue
+        if copies > level:
+            limit = "Unlimited" if level == NO_LIMIT else f"{level} {'copy' if level == 1 else 'copies'}"
+            problems.append(f"CardID {card_id} ({name}): {copies} copies exceed the game limit ({limit})")
+            continue
+        have = data[off + 1] if data[off] == OWNED_FLAG else 0
+        plan.append({"index": idx, "cardid": card_id, "name": name, "level": level,
+                     "copies": max(have, copies), "already": have})
+    if problems:
+        print("STOP: preconditions failed, nothing written:")
+        for p in problems:
+            print(f"  FAIL: {p}")
+        return 1
+    print(f"preconditions: {len(plan)} cards resolved, no index collisions, "
+          f"no Forbidden card and every copy count within the game limit")
+
+    # --- the patch: possession and copies only, the level byte stays ----------
+    before = read_owned(data, RECORDS + 18)
+    for p in plan:
+        off = TABLE_OFFSET + p["index"] * STRIDE
+        data[off] = OWNED_FLAG
+        data[off + 1] = p["copies"]
+    out = bytes(data)
+
+    # --- verification -------------------------------------------------------
+    fails = []
+    allowed = set()
+    for p in plan:
+        off = TABLE_OFFSET + p["index"] * STRIDE
+        allowed.update((off, off + 1))
+    changed = {i for i in range(len(data)) if data[i] != orig[i]}
+    stray = changed - allowed
+    if stray:
+        fails.append(f"{len(stray)} bytes changed outside the granted records: {sorted(stray)[:8]}")
+    for p in plan:
+        off = TABLE_OFFSET + p["index"] * STRIDE
+        rec = data[off:off + STRIDE]
+        if rec[0] != OWNED_FLAG:
+            fails.append(f"index {p['index']}: flag is 0x{rec[0]:02x}, expected 0x04")
+        if rec[1] != p["copies"]:
+            fails.append(f"index {p['index']}: {rec[1]} copies, expected {p['copies']}")
+        if rec[2] != p["level"]:
+            fails.append(f"index {p['index']}: level became {rec[2]}, was {p['level']}")
+    after = read_owned(out, RECORDS + 18)
+    outside = set(seen)
+    kept = [r for r in after if r["index"] not in outside]
+    if kept != before:
+        fails.append("an ownership record outside the recipe changed")
+    tail = slice(TABLE_END, TABLE_END + 18 * STRIDE)
+    if out[tail] != orig[tail]:
+        fails.append("the 18 E6 records (indices 2480..2497) changed")
+    if fails:
+        print(f"VERIFICATION FAILED ({len(fails)}), nothing written:")
+        for f in fails:
+            print(f"  FAIL: {f}")
+        return 1
+
+    owned_total = len(after)
+    gained = sum(1 for p in plan if not p["already"])
+    print(f"verified: {gained} new cards granted, {len(plan) - gained} already owned, "
+          f"{len(changed)} bytes changed (all inside the granted records), "
+          f"level byte preserved on every one, the 18 E6 records untouched")
+    for p in plan:
+        tag = f"already had {p['already']}" if p["already"] else "new"
+        limit = "Unlimited" if p["level"] == NO_LIMIT else f"limit {p['level']}"
+        print(f"  index {p['index']:4d}  CardID {p['cardid']:5d}  {p['copies']}x  "
+              f"{limit:10}  {p['name']}  ({tag})")
+    print(f"owned records: {len(before)} -> {owned_total}")
+    with open(args.out, "wb") as f:
+        f.write(out)
+    print(f"wrote {args.out} ({len(out)} bytes, sha256 {sha256(out)})")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -185,6 +344,12 @@ def main(argv: list[str]) -> int:
     p.add_argument("--out", default=DEFAULT_OUT)
     p.add_argument("--ehp", default=DEFAULT_EHP)
     p.set_defaults(func=patch)
+    g = sub.add_parser("grant", help="grant a deck recipe's cards without touching the limit levels")
+    g.add_argument("save")
+    g.add_argument("--out", required=True)
+    g.add_argument("--recipe", default=DEFAULT_RECIPE)
+    g.add_argument("--ehp", default=DEFAULT_EHP)
+    g.set_defaults(func=grant)
     args = ap.parse_args(argv[1:])
     return args.func(args)
 

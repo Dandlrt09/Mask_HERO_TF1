@@ -211,6 +211,16 @@ Aclaración técnica central: **en TF1 el nombre de la carta está pintado dentr
 "editar el nombre en el arte" no es una operación aparte del arte: hay que **reemplazar la imagen
 entera** de la carta. Eso deja tres caminos, de más barato a más caro:
 
+> **Corrección medida (2026-11-02, fase E8).** La premisa "pintado por idioma" **no se sostiene
+> para el pack del álbum**: `cardh_s.cip` y `cardh_e.cip` son **99,8–100% idénticos** byte a byte
+> en la misma carta (4 muestras; dos idénticas del todo). El archivo está duplicado por idioma pero
+> el contenido NO se diferencia por idioma, así que el nombre no se pinta por idioma en el álbum.
+> Queda abierto de dónde sale el nombre: lo dibuja el motor como texto, o vive en un atlas común
+> pese a estar dentro de la misma imagen. Evidencia contraria parcial: el asset de UI
+> `help_deckimg_008.gim` (una captura del editor de deck) **sí** muestra miniaturas con el nombre
+> legible adentro — pero es una captura de UI, no el slot de una carta. No repetir el supuesto sin
+> medirlo en `cardh`/`cardm`.
+
 1. **Copiar la imagen de otro juego de la saga** que la tenga en el mismo formato de contenedor
    (Tag Force 2/3, otra entrega con los HÉROE Enmascarado): sería sólo una entrada CIP nueva.
 2. **Generar la imagen** con el marco y el formato del juego y el nombre renderizado en español,
@@ -227,7 +237,12 @@ contenedor). Es una fase aparte (E8), no parte del port de datos.
 El usuario va a mandar **una receta de Jaden (deck HÉROE) de este TF1**; las cartas se agregan a su
 colección con la **misma vía que las 18**: entradas de propiedad en la tabla del save (§10.2). Sus
 índices son < 2480, así que **no hace falta ningún parche extra** (ni de módulo ni de extensión de
-tabla): alcanza con escribir `flag=0x04, copies=N, level=3` en el índice de cada CardID.
+tabla): alcanza con escribir `flag=0x04` y `copies=N` en el índice de cada CardID.
+
+> Corrección medida (2026-11-02): esta sección decía `level=3`. Es incorrecto: el byte 2 de cada
+> registro **ya trae el nivel de límite real del juego** en el save prístino, incluso para las cartas
+> no poseídas, y es justo el byte que lee el lector parcheado en E5-C2. El parche de la receta no
+> debe inventarlo ni pisarlo: conservarlo es lo que mantiene la banlist de TF1 intacta.
 
 Lo que ya tiene para esa prueba: las 4 mágicas de la fase (Cambio de Máscara `4704`, Cambio de
 Máscara II `4721`, Cambio de Forma `4726`, Carga de Máscara `4730`). Lo que falta son los
@@ -236,5 +251,40 @@ Máscara II `4721`, Cambio de Forma `4726`, Carga de Máscara `4730`). Lo que fa
 Cuando llegue la receta, el orden es: (1) resolver cada carta por nombre a su CardID → índice
 interno en el contenedor prístino; (2) conceder la propiedad en el save; (3) recién entonces probar
 si "Cambio de Máscara" **ejecuta** algo — hoy no ejecuta efecto (es código de motor, §11.2).
+
+#### B.1 Resuelto (2026-11-02): receta recibida y concedida
+
+La receta llegó: **"Ultimate Hero ★6"** (Jaden, E-HERO), 37 cartas distintas en 53 copias
+(42 de Deck Principal + 11 del Extra). Traducida a CardIDs en `datos/receta_hero.tsv`.
+
+**Resolución: 37/37 existen en TF1.** Dos nombres están escritos distinto **dentro del juego**:
+
+| nombre de la receta | nombre en TF1 | CardID | índice |
+| --- | --- | --- | --- |
+| Elemental Hero Mudballman | Héroe Elemental Hombre Bola Loco | 6529 | 2253 |
+| Elemental Hero Wildedge | Héroe Elemental Wiledge | 6488 | 2214 |
+
+**Legalidad**: la receta respeta la lista de límites de TF1 tal como está impresa. 11 de las 37
+tienen límite especial y **ninguna está prohibida** (el caso que parecía prohibido, Cyber Jar, es
+*limitada* en este juego). Por eso `copies` nunca excede el nivel de cada índice.
+
+**Herramienta**: `tools/e6_patch_save.py grant SAVE --out OUT [--recipe TSV]`. Toma cualquier save
+en texto plano, resuelve CardID → índice por `CARD_IntID` (con contraste contra `CARD_Prop`), y
+escribe **solo** byte0 (`0x04`) y byte1 (copias). Rechaza el pedido entero, sin escribir nada, si una
+carta no existe en el contenedor, si su índice está fuera del pool base, si el índice está repetido,
+si el save la marca prohibida, o si pide más copias que el límite. Escribe un archivo nuevo: nunca
+pisa la entrada.
+
+**Verificación del build**: `trabajo/e6/DATA0.hero` desde `trabajo/e6/DATA0.18` — 53 → **90**
+registros poseídos (35 del deck inicial + 18 de E6 + 37 de la receta, sin solapamientos), 74 bytes
+modificados, todos dentro de los registros concedidos, el byte de nivel intacto en los 37, los 18
+registros de E6 sin tocar. Rutas de rechazo probadas: copias sobre el límite, carta prohibida,
+CardID inexistente e índice duplicado (las cuatro devuelven exit 1 y no crean archivo). Regresión:
+`patch` sigue reproduciendo `DATA0.18` byte a byte.
+
+**Qué NO habilita**: jugar un deck HÉROE **no** prueba los efectos de Cambio de Máscara. Las 4
+mágicas nuevas siguen sin ejecutar su efecto y las 11 fusiones nuevas siguen sin receta de fusión,
+por lo que hoy son invocables **solo** por Cambio de Máscara, que no ejecuta ⇒ quedan no invocables
+en duelo. Eso es E7 (motor), no datos.
 
 ---
