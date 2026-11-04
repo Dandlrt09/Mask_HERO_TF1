@@ -114,3 +114,11 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
   segundo `PT_LOAD`, así que **S-A es viable** y T2/T3 se desbloquean. Siguiente sesión: T2 (tabla
   extendida de 149 registros en el segmento nuevo + repunte del finder y de los 4 sitios de fin) y T3
   (ISO de producto `trabajo/e7/TF1-E7-F1.iso`).
+- **E9** (entrega, medido por el harness): el corte de unidad de trabajo para E7 es el commit
+  **`fb27dca`** (`feat(e7): map the engine dispatch for effects and probe the module layout`, 4 archivos,
+  1 566 líneas). La rama `spike/e1-test` está en **28 commits / ~9 710 líneas** sobre `main`: antes del
+  próximo commit hay que aplicar la estrategia de entrega (PRs encadenados; corte sugerido E0..E6 / E7 /
+  E8) y actualizar el README. **Decisión del usuario**, no del agente. Por eso T2/T3 no se commitearon y
+  esta anotación queda en el árbol de trabajo.
+- **Estado al cerrar la sesión**: sin commitear `ESTADO-E6.md`, `ESTADO-E8.md`, `tools/e6_patch_save.py`,
+  `datos/receta_hero.tsv` (unidad de trabajo de la fase E6, anterior y separada) y esta anotación.
