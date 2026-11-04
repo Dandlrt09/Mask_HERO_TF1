@@ -1,0 +1,62 @@
+# Receta "Ultimate Hero ★6" (Jaden, E-HERO) traducida a CardIDs de TF1.
+#
+# Fuente: la lista que pasó el usuario (wiki-style, 42 copias de Deck Principal +
+# 11 del Extra Deck = 53 copias, 37 cartas distintas).
+#
+# Resolución: cada nombre se buscó contra el contenedor PRISTINO de TF1. Las 37
+# existen. Dos nombres están escritos distinto DENTRO del juego y se listan en
+# las dos formas para que la tabla sea auditable:
+#   * Elemental Hero Mudballman  -> el juego lo llama "Héroe Elemental Hombre Bola Loco"
+#     (CardID 6529, índice 2253).
+#   * Elemental Hero Wildedge    -> el juego escribe "Wiledge" (CardID 6488, índice 2214).
+#
+# Legalidad: la receta respeta la lista de límites de TF1 tal como está impresa.
+# 11 de las 37 cartas tienen límite especial en este juego (ninguna prohibida):
+# Ciber Jarra, Jarra de la Metamorfosis, Tormenta Fuerte, Entierro Prematuro,
+# Tifón del Espacio Místico, Olla de la Codicia, Llamada de los Condenados,
+# Cilindro Mágico y Tributo Torrencial son LIMITADAS (1); Intercambio de Criatura
+# y Refuerzo del Ejército son SEMI-LIMITADAS (2). Rascacielos, por su parte, es
+# ilimitada. La columna `copies` nunca excede el límite real de cada índice.
+#
+# Todas las cartas viven en índices internos < 2480, así que se conceden con la
+# misma escritura de 4 bytes que usó E6, sin ningún parche de módulo ni de tabla.
+#
+# Columnas: cardid  copies  nombre_es  nombre_en  seccion
+cardid	copies	nombre_es	nombre_en	seccion
+6310	1	Héroe Elemental Avian	Elemental Hero Avian	Normal
+6311	1	Héroe Elemental Burstinatrix	Elemental Hero Burstinatrix	Normal
+6313	2	Héroe Elemental Sparkman	Elemental Hero Sparkman	Normal
+6312	2	Héroe Elemental Clayman	Elemental Hero Clayman	Normal
+4913	1	Ciber Jarra	Cyber Jar	Effect
+6393	1	Héroe Elemental Bubbleman	Elemental Hero Bubbleman	Effect
+4597	1	Jarra de la Metamorfosis	Morphing Jar	Effect
+6477	1	Héroe Elemental Bladedge	Elemental Hero Bladedge	Effect
+6478	3	Héroe Elemental Wildheart	Elemental Hero Wildheart	Effect
+6314	1	Kuriboh Alado	Winged Kuriboh	Effect
+6044	2	Rey del Pantano	King of the Swamp	Effect
+6344	2	Héroe Elemental de la Llama Wingman	Elemental Hero Flame Wingman	Fusion
+6486	1	Héroe Elemental Rampart Blaster	Elemental Hero Rampart Blaster	Fusion
+6345	3	Héroe Elemental del Trueno Gigante	Elemental Hero Thunder Giant	Fusion
+6535	1	Héroe Elemental Steam Healer	Elemental Hero Steam Healer	Fusion
+6529	1	Héroe Elemental Hombre Bola Loco	Elemental Hero Mudballman	Fusion
+6487	1	Héroe Elemental Tempest	Elemental Hero Tempest	Fusion
+6488	3	Héroe Elemental Wiledge	Elemental Hero Wildedge	Fusion
+5162	1	Intercambio de Criatura	Creature Swap	Spell
+4891	1	Tormenta Fuerte	Heavy Storm	Spell
+4966	1	Entierro Prematuro	Premature Burial	Spell
+5118	1	De-Fusión	De-Fusion	Spell
+4909	1	Tifón del Espacio Místico	Mystical Space Typhoon	Spell
+5328	2	Refuerzo del Ejército	Reinforcement of the Army	Spell
+4872	1	Sabio de la Fusión	Fusion Sage	Spell
+4837	3	Polimerización	Polymerization	Spell
+6399	2	Rascacielos	Skyscraper	Spell
+6431	2	Recuperación de Fusión	Fusion Recovery	Spell
+6511	1	Olla de la Avaricia	Pot of Avarice	Spell
+5330	1	El Guerrero Volviendo Con Vida	The Warrior Returning Alive	Spell
+4844	1	Olla de la Codicia	Pot of Greed	Spell
+4989	1	Llamada de los Condenados	Call of the Haunted	Trap
+5124	1	Cilindro Mágico	Magic Cylinder	Trap
+4861	1	Juicio Solemne	Solemn Judgment	Trap
+6356	2	Señal de Héroe	Hero Signal	Trap
+5799	2	Armadura Sakuretsu	Sakuretsu Armor	Trap
+5114	1	Tributo Torrencial	Torrential Tribute	Trap
