@@ -261,3 +261,58 @@ rompen, se ignora).
 **falso** (ahí están `.shstrtab`, la tabla de secciones y `.rel.text`). El worker se negó a escribir y
 pidió la corrección: se pasó a un append al final del archivo. Sin esa negativa, la sonda habría
 corrompido la tabla de secciones y un fallo se habría atribuido a la pregunta equivocada.
+
+### 8.4 Artefacto de producto (T2/T3) y verificación independiente (T4) — 2026-11
+
+| hecho | valor |
+| --- | --- |
+| ISO de producto | `trabajo/e7/TF1-E7-F1.iso`, **798.787.584 B** (mismo tamaño que G6), sha256 `135c8881c0038995a3055470311e8a64ebae2c232e7d8eff9336da4cd36362d7` |
+| módulo parcheado | `trabajo/e7/libduel_eng_f1.prx`, **1.472.064 B** (`0x167640`), sha256 `5dfb9b7e11f4d1d5753bc2c2cb65188d97148fbfe0a1a95c45714537a0a8e7e1` |
+| herramienta | `tools/e7_fusion.py` (`patch`/`verify`/`iso`/`dump`; se niega a escribir si falla una invariante) + informe `trabajo/e7/T2-T3.md` |
+| tabla nueva | 149 registros + terminador = **1200 B exactos** (94 nativos copiados byte a byte + 10 recetas Masked HERO + 45 pares de Contraste Chaos) en el 2º `PT_LOAD` (`VMA 0x112910`, file `0x167190`) |
+| parches de código | 6 palabras: base del finder `0x10acb4 → 0x112910`, `sltiu 0x5e → 0x95` (149) y los 4 sitios de fin `0x10afa4 → 0x112db8`; más `e_phoff=0x167150` y `e_phnum=2` |
+| huella | **15 bytes** distintos en `[0, 0x16714a)` + 1270 bytes agregados; tabla de secciones intacta; **6 sectores** distintos en la ISO (`38, 12048, 12368, 12389, 12390, 12766`), ninguno fuera del módulo y su registro de directorio; `libduel_mgr.prx` (LBA 12767+) intacto |
+
+**T4 — verificación independiente (PASS en S2, S3, S4 y S6)**: un verificador read-only re-derivó todo
+desde los bytes **sin usar la herramienta del escritor**. Reproducido: `e_phnum=2` con PH2 =
+`(1, 0x167190, 0x112910, 0x112910, 1200, 1200, 7, 16)` y rangos de carga disjuntos; los 15 bytes
+cambiados son exactamente los declarados y nada más; la tabla de secciones y las 25 entradas son
+byte-idénticas; los registros 0..93 son byte-idénticos a los nativos; las 10 recetas y los 45 pares
+coinciden con S2 sin duplicados; 149 registros y terminador `(10,0,0,0)`; **las 94 nativas resuelven en
+el mismo índice** que en la tabla original (búsqueda lineal por `result`) y las 11 nuevas a su receta
+(4696 → primer par `(4661,4665)`); en la ISO solo difieren los sectores declarados.
+
+**Riesgo residual que decide T5 (in-game, una sola varilla)**: (a) que el motor acepte una **Mágica**
+(`Cambio de Máscara` 4704) como material de fusión — si la pantalla de fusión no deja elegirla, aplica
+S7 y se vuelve al usuario sin tocar el mapa; (b) la semántica en runtime del helper de `libehsys`
+(NID `0xed7a3401`, stub VMA `0xfbe00`) que recibe el puntero de fin de tabla. El soporte del cargador
+para dos `PT_LOAD` ya está probado in-game (EXP2/T10, §8.3).
+
+**Cobertura offline declarada**: el subcomando `verify` de `tools/e7_fusion.py`. **No** se agrega un test
+con framework: los artefactos binarios viven en `trabajo/` (gitignored: ISO de 800 MB + módulo), así que
+un test commiteado que dependa de ellos no correría en un clon limpio.
+
+### 8.5 Ronda F2 (L12: mapa ampliado) — 2026-11
+
+**Motivo**: en el test in-game de F1 el usuario vio que **Dian** no aparecía entre las opciones aunque
+tenía HÉROE de TIERRA. Causa medida: **Bladedge (6477) no era material de ninguna de las 55 recetas**
+(S2 fijaba **una base por atributo**: TIERRA ⇒ Clayman 6312). Decisión del usuario (L12): ampliar sólo a
+**las bases que su deck ya posee**.
+
+| hecho | valor |
+| --- | --- |
+| mapa | **151 registros** = 94 nativos + **12** de base + **45** de Contraste Chaos; Dian acepta **Clayman 6312 + Bladedge 6477 + Wildheart 6478** (TIERRA es el único atributo con más de una base poseída) |
+| módulo | `trabajo/e7/libduel_eng_f2.prx`, **1.472.080 B** (`0x167650`), sha256 `38c44953b4afac5989e931d22275fcadb4bed453f3743d844492ff080a7ad59a` |
+| ISO | `trabajo/e7/TF1-E7-F2.iso`, **798.787.584 B** (mismo tamaño que G6), sha256 `e3d9ea359285f980a7e08236fc81a1c967335936028a853df074ef9731742fbf` |
+| geometría | igual que F1, con la carga útil en **1216 B** (`0x4c0`): 2º `PT_LOAD` en `VMA 0x112910`, finder con largo **151** (`sltiu 0x97` en file `0xa04dc`) y fin en `VMA 0x112dc8` (los 4 sitios) |
+| huella | los mismos **15 bytes** distintos dentro de `[0,0x16714a)` + 1286 bytes agregados; **6 sectores** distintos en la ISO; G6 y los artefactos de F1 byte-idénticos (pins re-verificados) |
+| herramienta | `tools/e7_fusion.py` ahora **deriva del mapa** contadores, tamaño de carga útil, inmediato del largo y puntero de fin ⇒ el próximo cambio de mapa es una edición de datos |
+| verificación (T11) | verificador read-only **independiente**: **PASS en S2, S3, S4 y S6**; 151 registros sin duplicados; triplete de Dian exacto; 45 pares exactos; las 94 nativas resuelven en el **mismo índice**; `4673 → (4673,6312,4704,0)` y `4696 → (4696,4661,4665,0)`; **todos** los bytes que difieren en la ISO quedan explicados por el plan |
+
+**Nota de etiqueta**: el informe `trabajo/e7/T10-F2.md` §2 llama «PH1» al segundo segmento nuevo; el
+nombre correcto es **PH2** (PH1 en `0x167150` es la copia byte a byte del header original). Los valores
+medidos son correctos, sólo la etiqueta difiere.
+
+**Pendiente (una sola ronda del usuario, T5+T12)**: (a) Dian con **Bladedge** o **Wildheart** + «Cambio
+de Máscara»; (b) una fusión **nativa** (Avian + Burstinatrix → Flame Wingman) para cerrar S4 in-game.
+**Decisión abierta**: incluir los 7 HÉROE de Fusión poseídos (+10 registros; entran en la holgura).

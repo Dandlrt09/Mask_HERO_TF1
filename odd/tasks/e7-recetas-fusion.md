@@ -10,24 +10,32 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
   nuevo** en esta fase: se usa la tabla de recetas nativa. Fuera de alcance: los efectos de las 4
   Mágicas y los de los monstruos (frentes B y C de `ESTADO-E7.md` §3).
 - **S2 — Materiales.** `resultado = base E-HERO del mismo atributo + «Cambio de Máscara» (CardID
-  4704)`. Base por atributo (decidida por el usuario):
+  4704)`. Base por atributo: **todas las bases E-HERO del mismo atributo que la receta del deck ya
+  posee** (L12), donde la receta es `datos/receta_hero.tsv`:
 
-  | Fusión | CardID | Atributo | Base E-HERO |
+  | Fusión | CardID | Atributo | Base(s) E-HERO |
   | --- | --- | --- | --- |
   | Ácido | 4661 | AGUA | Bubbleman 6393 |
   | Anki | 4665 | OSCURIDAD | Necroshade 6527 |
   | Blast | 4671 | VIENTO | Avian 6310 |
   | Dark Law | 4672 | OSCURIDAD | Necroshade 6527 |
-  | Dian | 4673 | TIERRA | Clayman 6312 |
+  | Dian | 4673 | TIERRA | Clayman 6312, **Bladedge 6477**, **Wildheart 6478** |
   | Divine Wind | 4681 | VIENTO | Avian 6310 |
   | Goka | 4684 | FUEGO | Burstinatrix 6311 |
   | Koga | 4686 | LUZ | Sparkman 6313 |
   | Vapor | 4689 | AGUA | Bubbleman 6393 |
   | Atómico | 4690 | FUEGO | Burstinatrix 6311 |
 
+  Son **12 registros** de base (9 de una sola base + 3 de Dian) porque TIERRA es el único atributo con
+  más de una base poseída. `Necroshade 6527` **no** está en la receta del deck (Anki y Dark Law quedan
+  inalcanzables hasta que tenga esa carta) pero **se mantiene**: quitarla los dejaría sin receta alguna.
   `Contraste Chaos` (4696) usa los materiales que fija el propio texto del usuario: **2 monstruos
-  «HÉROE Enmascarado»** ⇒ se agrega una entrada por cada par no ordenado de las 10 Masked HERO
-  anteriores (45 entradas).
+  «HÉROE Enmascarado»** ⇒ una entrada por cada par no ordenado de las 10 Masked HERO anteriores
+  (45 entradas). **Total: 12 + 45 = 57 registros nuevos ⇒ 94 + 57 = 151 registros** (F1 tenía 149).
+  Quedan **fuera** de S2 los 7 HÉROE de Fusión que el deck posee (Flame Wingman 6344, Rampart Blaster
+  6486, Thunder Giant 6345, Steam Healer 6535, Mudballman 6529, Tempest 6487, Wildedge 6488): en la
+  carta real «Cambio de Máscara» toma **cualquier** monstruo HÉROE, así que es una ampliación
+  consecuente (10 registros más), pero **no fue lo aprobado en L12**: decisión del usuario.
 - **S3 — La tabla nativa no se puede estirar in situ.** La tabla vive en `gmodule/libduel_eng.prx`
   `.data` VMA `0x10acb4` (94 registros de 8 B, terminador `(10,0,0,0)` en `0x10afa4`). Pegado al
   terminador hay un blob de 108 B (`0x10afac..0x10b018`) y después la tabla de 8 B
@@ -122,3 +130,124 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
   esta anotación queda en el árbol de trabajo.
 - **Estado al cerrar la sesión**: sin commitear `ESTADO-E6.md`, `ESTADO-E8.md`, `tools/e6_patch_save.py`,
   `datos/receta_hero.tsv` (unidad de trabajo de la fase E6, anterior y separada) y esta anotación.
+- **L8** (usuario, verbatim): «Sigamos con E7 ahora que ya tenemos referencias de Tag force special»
+  (la referencia es la de E9: `ESTADO-E9.md`, «Cambio de Máscara» en ARC-V Tag Force Special).
+- **L9** (usuario, decisión de secuencia, verbatim): «A ahora y B después, en rondas separadas» ⇒ esta
+  ronda cierra **T2/T3 (frente A: recetas)** y el **frente B** (el efecto real de «Cambio de Máscara»
+  como código ARM, con la spec de E9) queda como **fase propia**, no como parte de E7.
+- **L10** (usuario, decisión de entrega, verbatim): «Cortar PRs al cerrar E7» ⇒ los PRs encadenados
+  (corte E0..E6 / E7 / E8 / E9) + README se hacen **con E7 cerrado y validado in-game**, no antes.
+- **E10** (medido por el padre, 2026-11, read-only sobre `trabajo/e1c/gm/libduel_eng.prx`):
+  (a) **el finder es un escaneo lineal por resultado, sin orden que preservar**: `0xa0454` materializa
+  la base, y el bucle compara `lhu 0(entry)` contra el argumento y devuelve el puntero de la **primera**
+  coincidencia, con `sltiu a2,0x5e` (VMA `0xa047c`, file `0xa04dc`) ⇒ **agregar al final es seguro**
+  (no hay búsqueda binaria ni clave ordenada).
+  (b) **Completitud del mapa de parches, verificada por barrido**: la base `0x10acb4` se materializa
+  **una sola vez** en todo `.text` (VMA `0xa0460`, file `0xa04c0`); el terminador `0x10afa4`
+  **exactamente cuatro veces** (VMA `0xaad64`, `0xaaf50`, `0xab3d4`, `0xab484`; file `0xaadc4`,
+  `0xaafb0`, `0xab434`, `0xab4e4`); `sltiu …,0x5e` una sola vez. Barrido de todos los pares
+  `lui+addiu` que resuelven a `0x10ac00..0x10b100`: 10 sitios, y **ninguno más sobre la tabla de
+  fusión** (los demás son la tabla de 27 palabras de `0x10afac` y `0x10ac80`/`0x10ac9c`/`0x10b01c`).
+  Los 4 sitios de fin pasan el terminador como **argumento** a un import de `libehsys`
+  (stub VMA `0xfbe00`, NID `0xed7a3401`, vía el wrapper `0xf7698`, que resuelve el puntero contra la
+  base del módulo) ⇒ lectura de T1 **confirmada**: es un **límite de tabla**, no una base.
+  (c) La carga útil nueva son **1200 B exactos** (94 copiados + 55 nuevos + terminador = 149×8+8),
+  **el mismo tamaño que la sonda EXP2** ⇒ el layout ya validado in-game por T10 se reusa sin cambios
+  (mismo `PH_OFF=0x167150`, mismo `PAYLOAD_OFF=0x167190`, mismo archivo final `0x167640`).
+- **Riesgo abierto de esta ronda (S7)**: que el motor rechace una **Mágica** como material de fusión
+  (todos los materiales nativos son monstruos). Si la selección de materiales del duelo no deja elegir
+  «Cambio de Máscara», **no se cambia el mapa por cuenta propia**: se vuelve al usuario con la medición
+  y las alternativas ya ofrecidas (Rey del Pantano 6044 / materiales del donante E-HERO). Lo decide T5.
+- **E11** (T2/T3, ejecutados, 2026-11): construidos `trabajo/e7/libduel_eng_f1.prx` (1.472.064 B =
+  `0x167640`, sha256 `5dfb9b7e…0a8e7e1`) y `trabajo/e7/TF1-E7-F1.iso` (798.787.584 B, **mismo tamaño
+  que G6**, sha256 `135c8881…36362d7`) con la herramienta nueva `tools/e7_fusion.py`
+  (`patch`/`verify`/`iso`/`dump`; se niega a escribir si una invariante falla). Informe del escritor:
+  `trabajo/e7/T2-T3.md`.
+- **E12** (T4, verificación independiente, 2026-11): un verificador read-only **re-derivó todo desde los
+  bytes, sin usar la herramienta del escritor**. PASS en **S2, S3, S4 y S6**: `e_phnum=2` con PH2 =
+  `(1, 0x167190, 0x112910, 0x112910, 1200, 1200, 7, 16)`; **15 bytes distintos** en `[0, 0x16714a)`
+  (los 6 sitios declarados + `e_phoff` + `e_phnum`) y nada más; tabla de secciones byte-idéntica;
+  registros 0..93 byte-idénticos a los nativos; 10 recetas exactas según S2 y los 45 pares exactos
+  (`itertools.combinations`) sin duplicados; 149 registros y terminador `(10,0,0,0)`; las 94 nativas
+  resuelven en el **mismo índice** que en la tabla original y las 11 nuevas a su receta (4696 → primer
+  par `(4661,4665)`); en la ISO solo difieren los sectores `{38, 12048, 12368, 12389, 12390, 12766}`
+  (registro de directorio + el módulo) y `libduel_mgr.prx` (LBA 12767+) está intacto.
+- **E13** (corrección de cifra del padre): el «barrido = 10 sitios» de E10(b) contaba solo pares
+  `lui`+`addiu` **adyacentes y en el mismo registro**; un barrido más amplio (ventana de 8
+  instrucciones / guiado por relocs) encuentra más candidatos, pero **las cifras sustantivas se
+  reproducen exactas**: `0x10acb4` se materializa **una vez**, `0x10afa4` **cuatro veces**, y ningún otro
+  sitio toca la tabla de fusión. La cifra de 10 era un artefacto del criterio de barrido, no un hecho.
+- **Cobertura offline de esta unidad**: el subcomando `verify` de `tools/e7_fusion.py` (verificación
+  estructural ida y vuelta, reproducible desde el módulo prístino). **No** se agrega un test con
+  framework: los artefactos binarios viven en `trabajo/` (gitignored: 800 MB de ISO + módulo), así que
+  un test commiteado que dependa de ellos no correría en un clon limpio; sería un falso test. El
+  comportamiento en el juego lo decide T5.
+- **L11** (usuario, resultado del test, verbatim): «funcionó, burstinatrix se fusiono con la magia
+  cambio de mascara para invocar a atomic pero es raro ya que de las opciones no me salio Dian sabiendo
+  que tengo a Bladedge que es tierra no me permitio fusionarlo con el, probablemente porqué esta
+  invocado y quiza solo funcione si esta en la mano».
+- **E14** (T5, primera varilla — **observada**): «Polimerización» + **Burstinatrix** (6311) + **«Cambio de
+  Máscara»** (4704, una Mágica) resolvió e invocó **HÉROE Enmascarado Atómico** (4690) ⇒ (a) la receta
+  nueva del frente A funciona in-game; (b) **S7 queda contestada: el motor NO rechaza una Mágica como
+  material de fusión**; (c) el segundo `PT_LOAD` no sólo «no rompe la carga» (EXP2): **se usa** — el
+  finder repuntado a `0x112910` con largo 149 está leyendo la tabla nueva.
+- **Sobre Dian / Bladedge (medido, no es un fallo)**: Bladedge (6477) **no es material de ninguna de las
+  55 recetas**: S2 fija **una base por atributo** y para TIERRA la base es **Clayman (6312)**. Dian sólo
+  se ofrece con `Clayman + «Cambio de Máscara»` (y con Clayman disponible en mano o campo). Si se quiere
+  «cualquier HÉROE del mismo atributo», hay que **ampliar S2** (decisión de producto del usuario).
+  **Restricción medida de esa ampliación**: el módulo ocupa 1.472.064 B dentro de un *extent* ISO de
+  1.472.512 B ⇒ **448 B = 56 registros** de holgura (`8 B` cada uno) **sin** hacer crecer la ISO; más que
+  eso pide un layout nuevo (mover el módulo siguiente del image).
+- **T5 sigue abierta**: falta la **segunda varilla de S5** (que una fusión **nativa**, p. ej. Avian +
+  Burstinatrix → Flame Wingman, siga resolviendo). Sin esa señal no se cierra T5 ni se commitea la unidad.
+- **L12** (usuario, decisión de producto, 2026-11): ante la ausencia de Dian en la lista de fusiones
+  («de las opciones no me salio Dian sabiendo que tengo a Bladedge que es tierra»), eligió **«Ampliar
+  sólo las bases que ya tenés»** ⇒ **S2 se reescribe** a «todas las bases E-HERO del mismo atributo que
+  la receta del deck ya posee». En la misma ronda respondió dos cosas más: **la fusión nativa todavía no
+  la probó** (T5 sigue abierta) y **Burstinatrix estaba en la mano** al fusionar (su hipótesis de que un
+  monstruo **en el campo** no cuenta como material queda **sin confirmar**, ni probada ni descartada).
+- **E15** (medido, consecuencia de L12): las bases poseídas por atributo salen de `datos/receta_hero.tsv`
+  y dan **sólo Dian con más de una**: TIERRA = Clayman 6312 + **Bladedge 6477** + **Wildheart 6478**;
+  los otros ocho atributos del mapa tienen **una sola** base poseída cada uno. Por eso la ampliación son
+  **+2 registros** (S2: 57; tabla: **151**). Holgura: el *extent* ISO del módulo es 1.472.512 B y la
+  tabla nueva pide 1.472.080 B ⇒ quedan **432 B = 54 registros**; los 7 HÉROE de Fusión de la receta
+  pedirían 10 registros más, así que también entrarían (queda como decisión aparte, ver S2).
+- **T10/T11** (reabren T2/T3/T4 sobre un artefacto nuevo `F2`): el mismo mecanismo, con el mapa ampliado.
+- **E16** (T10/T11, ejecutados y verificados, 2026-11): ronda **F2** construida y verificada —
+  `trabajo/e7/libduel_eng_f2.prx` (1.472.080 B = `0x167650`, sha256 `38c44953…ad59a`) y
+  `trabajo/e7/TF1-E7-F2.iso` (798.787.584 B, sha256 `e3d9ea35…742fbf`). La herramienta ahora **deriva
+  del mapa** los contadores, el tamaño de la carga útil, el inmediato del largo y el puntero de fin ⇒ el
+  próximo cambio de mapa es **edición de datos**. Verificación independiente (T11): **PASS en S2, S3, S4
+  y S6** — 151 registros sin duplicados, triplete de Dian exacto `(4673, 6312/6477/6478, 4704, 0)`, los 45
+  pares exactos, las 94 nativas resuelven en el **mismo índice**, `4673 → (4673,6312,4704,0)` y
+  `4696 → (4696,4661,4665,0)`, y **todos** los bytes que difieren en la ISO explicados por el plan;
+  G6 y los artefactos de F1 quedaron byte-idénticos. Nota: `trabajo/e7/T10-F2.md` etiqueta «PH1» al
+  segmento nuevo; es **PH2** (los valores medidos son correctos).
+- **Pendiente de la ronda (una sola varilla, T5+T12)**: Dian con **Bladedge** o **Wildheart** + «Cambio
+  de Máscara», y una **fusión nativa** (Avian + Burstinatrix → Flame Wingman) para cerrar S4 in-game.
+  **Decisión abierta**: incluir los **7 HÉROE de Fusión** poseídos como bases (+10 registros; entran en
+  la holgura de 432 B).
+- **Estado al cerrar la sesión (2026-11, a pedido del usuario: «haré esto mañana, guarda y cierra
+  sesion»)**: rondas **F1** y **F2** construidas y verificadas offline (PASS independiente en S2, S3, S4
+  y S6); **T5/T12 esperan la ronda in-game de mañana sobre `TF1-E7-F2.iso`** (dos señales: Dian con
+  Bladedge/Wildheart, y una fusión nativa). Sin commitear: `tools/e7_fusion.py` (nuevo) y los cambios de
+  `ESTADO-E7.md` (§8.4/§8.5) y de este documento (L8-L12, E10-E16, S2 reescrito). **No se commiteó a
+  propósito**: L10 fija que el commit de la unidad de E7 va **después** de la validación in-game, y el
+  corte de PRs al cerrar la fase. Los artefactos binarios (`trabajo/e7/*.prx`, `*.iso`) son gitignored y
+  quedan en disco.
+- **L13** (usuario, decisión de entrega, 2026-11, verbatim): «Vamos a ordenar todo lo relacionado con el
+  repo y hacer los commits y push correspondientes a lo trabajado». Decisiones de entrega tomadas en el
+  cuestionario de esa ronda: **cadena stacked a `main`** (`chain_strategy=stacked-to-main`), **un corte
+  por fase** (E1-test / E5 / E6 / E7 / E8 / E9 + README) y **PRs simples, sin issues ni labels** (el repo
+  destino no tiene esa política). Esto **adelanta el commit de la unidad de E7 y el corte de PRs**
+  respecto de L10, que los ataba al cierre validado in-game: **T5/T12 siguen abiertos** y quedan
+  declarados como pendientes en el corte de E7.
+- **E17** (T6, ejecutado, 2026-11): commit de la unidad de E7 en `spike/e1-test` —
+  `feat(e7): add the data-driven fusion recipe patcher for TF1` (`tools/e7_fusion.py`) y
+  `docs(e7): record the F1/F2 rounds and the delivery decision` (`ESTADO-E7.md` §8.4/§8.5 y este
+  documento con L8-L13 y E10-E17). Entrega cortada en **7 ramas stacked desde `main`**, una por fase:
+  `feat/e1-test-card-db-probe` → `feat/e5-level-reader-limit` → `feat/e6-port-18-cards` →
+  `feat/e7-fusion-recipes` → `feat/e8-card-art` → `feat/e9-tfsp-reference` → `docs/readme-and-delivery`.
+  El corte de E7 lleva la ronda **F2** verificada offline (PASS independiente en S2, S3, S4 y S6) con la
+  validación in-game **todavía pendiente**; cada corte supera el presupuesto de revisión de 400 líneas y
+  no hay split más fino que no rompa la cohesión (el detalle está en `odd/tasks/delivery-cadena-prs.md`).
