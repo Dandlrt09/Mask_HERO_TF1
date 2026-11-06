@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""E7/T10+T11: grow the native fusion recipe table to 151 records and build the
+"""E7/T10-T14: grow the native fusion recipe table (the L12+L14 map) and build the
 product ISO.
 
 The native engine reads fusion recipes from a `libduel_eng.prx` `.data` table at
@@ -12,9 +12,10 @@ the layout the EXP2 probe already booted (T1-PLAN.md section 4, S-A):
   * append a second `PT_LOAD` segment past EOF, inside the ISO's allocated
     extent for the module, so the ISO does not grow and no other file moves;
   * copy the 94 native records verbatim, append the Masked HERO base recipes
-    (Dian has three bases: Clayman 6312, Bladedge 6477, Wildheart 6478) and the
-    45 unordered pairs for `Contraste Chaos` (CardID 4696), and re-point the
-    finder base, its length and the four table-end pointers.
+    (E-HERO bases per L12 -- Dian has three: Clayman 6312, Bladedge 6477,
+    Wildheart 6478 -- plus the owned Fusion HEROes per L14) and the 45 unordered
+    pairs for `Contraste Chaos` (CardID 4696), and re-point the finder base, its
+    length and the four table-end pointers.
 
 Every count, size, immediate and pointer below is DERIVED from the S2 record
 map, so amplifying that map later is a data-only edit.
@@ -43,15 +44,20 @@ verified the whole mechanism end to end:
   * `PH_OFF      = 0x167150`  (16-aligned; 0x16714a..0x167150 zero padded)
     64-byte table: entry 0 = byte copy of the original PH, entry 1 = new segment.
   * entry 1: type 1, p_offset = `PAYLOAD_OFF = 0x167190`, p_vaddr = p_paddr =
-    0x112910 (= vaddr end of segment 1), p_filesz = p_memsz = 1216, flags 7,
-    align 16.  p_offset % 16 == p_vaddr % 16 == 0.
-  * payload: 1216 bytes at 0x167190 = 94 copied records + 12 Masked HERO base
-    recipes + 45 `Contraste Chaos` pairs + the `(10,0,0,0)` terminator.
+    0x112910 (= vaddr end of segment 1), p_filesz = p_memsz = `PAYLOAD_SIZE`
+    (1296 B with the L14 map), flags 7, align 16.  p_offset % 16 == p_vaddr %
+    16 == 0.
+  * payload: `PAYLOAD_SIZE` bytes at 0x167190 = 94 copied records + the Masked
+    HERO base recipes (E-HERO `MASKED_HEROES` + owned Fusion HERO
+    `FUSION_HERO_BASES`) + the 45 `Contraste Chaos` pairs + the `(10,0,0,0)`
+    terminator.
   * code patches (only the low half of each immediate changes; `%hi` is 0x11 at
-    every site): finder base -> 0x112910, `sltiu` bound 0x5e -> 0x97, four end
-    pointers -> 0x112dc8.
-  * `e_phoff = 0x167150`, `e_phnum = 2`; new file size = 0x167650 = 1472080,
-    inside the ISO's 1472512-byte allocation for the module (432 B slack).
+    every site): finder base -> 0x112910, `sltiu` bound 0x5e -> `TABLE_COUNT`
+    (0xa1 = 161), four end pointers -> `TABLE_END_VMA` (0x112e18 with the L14
+    map).
+  * `e_phoff = 0x167150`, `e_phnum = 2`; new file size = `NEW_SIZE` (0x1676a0 =
+    1472160 with the L14 map), inside the ISO's 1472512-byte allocation for the
+    module (352 B slack: the L14 map still needs no ISO growth).
 
 Subcommands (every one refuses to write when an invariant fails):
 
@@ -144,13 +150,36 @@ MASKED_HEROES = (
     (4689, (6393,)),          # Vapor       / Bubbleman
     (4690, (6311,)),          # Atomic      / Burstinatrix
 )
+# L14 (user decision, 2026-11): the real "Mask Change" takes ANY HERO monster,
+# so the 7 Fusion HEROes the deck already owns are bases too, under the same
+# attribute rule as L12.  Attributes are MEASURED, never remembered: the results'
+# attributes come from `datos/cartas_18.tsv` (attr column: 3 AGUA, 6 VIENTO,
+# 5 TIERRA, 1 LUZ) and the bases' from the pristine `trabajo/e2/eng` cardinfo.
+# The owned Fusion HEROes are WIND 6344/6487, EARTH 6486/6529/6488, LIGHT 6345
+# and WATER 6535; there is none of OSCURIDAD (Anki 4665, Dark Law 4672) or FUEGO
+# (Goka 4684, Atomic 4690), so those results get no extra base.
+# (result CardID, (owned Fusion HERO CardIDs of the same attribute...))
+FUSION_HERO_BASES = (
+    (4661, (6535,)),              # Acid        / AGUA   : Steam Healer
+    (4671, (6344, 6487)),         # Blast       / VIENTO : Flame Wingman, Tempest
+    (4673, (6486, 6529, 6488)),   # Dian        / TIERRA : Rampart Blaster,
+                                  #                       Mudballman, Wildedge
+    (4681, (6344, 6487)),         # Divine Wind / VIENTO : Flame Wingman, Tempest
+    (4686, (6345,)),              # Koga        / LUZ    : Thunder Giant
+    (4689, (6535,)),              # Vapor       / AGUA   : Steam Healer
+)
+# Product pin for the record order this tool emits: every owned TIERRA base of
+# Dian, E-HEROes first (L12) and Fusion HEROes after (L14).
+DIAN_BASES = (6312, 6477, 6478, 6486, 6529, 6488)
 NEW_RESULTS = tuple(r for r, _bases in MASKED_HEROES) + (CHAOS,)
-S2_BASE_COUNT = sum(len(bases) for _r, bases in MASKED_HEROES)          # 12
+MASKED_BASE_COUNT = sum(len(bases) for _r, bases in MASKED_HEROES)      # 12
+FUSION_BASE_COUNT = sum(len(bases) for _r, bases in FUSION_HERO_BASES)  # 10
+S2_BASE_COUNT = MASKED_BASE_COUNT + FUSION_BASE_COUNT                   # 22
 CHAOS_COUNT = len(list(itertools.combinations(NEW_RESULTS[:-1], 2)))    # 45
-S2_COUNT = S2_BASE_COUNT + CHAOS_COUNT                                  # 57
-TABLE_COUNT = NATIVE_COUNT + S2_COUNT                                   # 151
-PAYLOAD_SIZE = TABLE_COUNT * 8 + 8                                      # 1216
-NEW_SIZE = PAYLOAD_OFF + PAYLOAD_SIZE                                   # 0x167650
+S2_COUNT = S2_BASE_COUNT + CHAOS_COUNT                                  # 67
+TABLE_COUNT = NATIVE_COUNT + S2_COUNT                                   # 161
+PAYLOAD_SIZE = TABLE_COUNT * 8 + 8                                      # 1296
+NEW_SIZE = PAYLOAD_OFF + PAYLOAD_SIZE                                   # 0x1676a0
 SEG2 = (1, PAYLOAD_OFF, SEG2_VADDR, SEG2_VADDR, PAYLOAD_SIZE, PAYLOAD_SIZE,
         7, 16)
 TABLE_END_VMA = SEG2_VADDR + TABLE_COUNT * 8                            # 0x112dc8
@@ -271,12 +300,15 @@ def native_records(prx: bytes) -> list[tuple]:
 
 
 def s2_records() -> list[tuple]:
-    """The Masked HERO base recipes plus the 45 unordered pairs."""
+    """The Masked HERO base recipes (E-HERO L12 + owned Fusion HERO L14) plus
+    the 45 unordered pairs."""
     masked = [(result, base, MASK_CHANGE, 0)
               for result, bases in MASKED_HEROES for base in bases]
+    fused = [(result, base, MASK_CHANGE, 0)
+             for result, bases in FUSION_HERO_BASES for base in bases]
     chaos = [(CHAOS, a, b, 0)
              for a, b in itertools.combinations(NEW_RESULTS[:-1], 2)]
-    return masked + chaos
+    return masked + fused + chaos
 
 
 def build_records(prx: bytes) -> tuple[list[tuple], list[tuple], list[tuple]]:
@@ -548,16 +580,15 @@ def verify_pair(pristine: bytes, patched: bytes) -> tuple[list[str], dict]:
     # the Masked HERO base records mirror the S2 map exactly, in listed order
     masked_actual = tuple(recs[NATIVE_COUNT:NATIVE_COUNT + S2_BASE_COUNT])
     masked_want = tuple((r, b, MASK_CHANGE, 0)
-                        for r, bases in MASKED_HEROES for b in bases)
+                        for r, bases in MASKED_HEROES + FUSION_HERO_BASES
+                        for b in bases)
     ev["masked_records"] = masked_actual
     if masked_actual != masked_want:
         fails.append(f"Masked HERO base records {masked_actual} do not mirror "
                      f"the S2 map {masked_want}")
     dian = tuple(r for r in recs if r[0] == 4673)
     ev["dian_records"] = dian
-    want_dian = ((4673, 6312, MASK_CHANGE, 0),
-                 (4673, 6477, MASK_CHANGE, 0),
-                 (4673, 6478, MASK_CHANGE, 0))
+    want_dian = tuple((4673, b, MASK_CHANGE, 0) for b in DIAN_BASES)
     if dian != want_dian:
         fails.append(f"Dian (4673) records are {dian}, expected {want_dian}")
     chaos = [r for r in recs[NATIVE_COUNT:] if r[0] == CHAOS]
@@ -773,7 +804,8 @@ def cmd_dump(args) -> int:
     print("  idx  result  mat1  mat2  mat3  origin")
     for i, r in enumerate(recs):
         origin = "native" if i < NATIVE_COUNT else \
-            ("masked" if i < NATIVE_COUNT + len(MASKED_HEROES) else "chaos")
+            ("masked" if i < NATIVE_COUNT + MASKED_BASE_COUNT else
+             ("fusion" if i < NATIVE_COUNT + S2_BASE_COUNT else "chaos"))
         print(f"  {i:3d}  {r[0]:6d}  {r[1]:5d}  {r[2]:5d}  {r[3]:5d}  {origin}")
     tail = ev["terminator"]
     print(f"  {len(recs):3d}  {tail[0]:6d}  {tail[1]:5d}  {tail[2]:5d}  "
