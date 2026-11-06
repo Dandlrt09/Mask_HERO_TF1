@@ -13,6 +13,7 @@ and can be regenerated with the tools in `tools/`.
 | E0 | CardInfo layout, bit-packing of `CARD_Prop`, free card IDs | Done — 6 internal files, 472 free IDs in `4007..6957` |
 | E2 | Decode the EHP v3 container and `CARD_Genre` | Done — 36 real genre bits, mapped and verified against Yugipedia |
 | E3 | Does the engine read `CARD_Genre` for the "Cannot perform Normal Summon" rule? | **Negative** — it does not; genre is UI-filter / AI metadata, rules live in ARM code |
+| E1-test | Append one new card on a free ID and reuse existing artwork | Test ISO built and verified; **in-game result pending** (`ESTADO-E1-test.md`) |
 
 Two findings worth keeping in mind:
 
@@ -57,6 +58,17 @@ python3 tools/e3_probe.py trabajo/e2/eng "Celtic Guardian"
 
 # E3 patch: copy the ISO and patch Prop/Genre bytes in all 6 languages
 python3 tools/e3_patch_iso.py "<iso>" trabajo/TF1-E3-test.iso
+
+# CardInfo append: rebuild an EHP container with one extra card record
+python3 tools/cardinfo_add.py <in.ehp> <out.ehp> --card-id 4661 --name "E1 TEST CARD" \
+        --donor 4047 --atk 4900 --level 4 --canary 4047:4850
+python3 tools/cardinfo_add.py <in.ehp> --print-card 4661
+
+# ISO replace: swap one file inside an image and update its directory record
+python3 tools/iso_replace.py "<iso>" <out.iso> PSP_GAME/USRDIR/duelsys/cardinfo_eng.ehp <new.ehp>
+
+# E1-test: the whole pipeline (ISO copy + new card + artwork alias + readback check)
+python3 tools/e1_patch_iso.py
 ```
 
 ## Reference sources
@@ -77,7 +89,8 @@ git submodule update --init --recursive
 
 1. **E1-test** — add one new card under a free ID (`Prop` + `Genre` + `IntID` + text +
    reused art) and check that it shows up in the album / shop / deck editor. Validates
-   the whole data pipeline without a single line of ARM.
+   the whole data pipeline without a single line of ARM. **Built and verified offline;
+   the in-game check is pending** — see `ESTADO-E1-test.md` for the test protocol.
 2. **E4** — Mask Change as an AR/PPSSPP code.
 3. **AI probe** — does a genre bit such as `SpecialSummon` change how the AI evaluates
    and plays a card?
