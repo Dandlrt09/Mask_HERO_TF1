@@ -315,4 +315,44 @@ medidos son correctos, sólo la etiqueta difiere.
 
 **Pendiente (una sola ronda del usuario, T5+T12)**: (a) Dian con **Bladedge** o **Wildheart** + «Cambio
 de Máscara»; (b) una fusión **nativa** (Avian + Burstinatrix → Flame Wingman) para cerrar S4 in-game.
-**Decisión abierta**: incluir los 7 HÉROE de Fusión poseídos (+10 registros; entran en la holgura).
+**Decisión abierta**: incluir los 7 HÉROE de Fusión poseídos (+10 registros; entran en la holgura) —
+**resuelta en L14** (ronda F3, §8.6).
+
+### 8.6 Ronda F3 (L14: bases HÉROE de Fusión) — 2026-11
+
+**Motivo**: la carta real «Cambio de Máscara» toma **cualquier** monstruo HÉROE, así que las Fusiones
+HÉROE que el deck ya posee son bases válidas. El usuario aprobó incluirlas (L14), con la **misma regla
+de atributo** de L12.
+
+**Los atributos se midieron, no se recordaron** — y la medición corrigió el supuesto del padre:
+**Flame Wingman (6344) es VIENTO**, no FUEGO, y Tempest (6487) también. Fuentes: `trabajo/e2/eng`
+(contenedor prístino, campo `attr`) para las bases y `datos/cartas_18.tsv` para los resultados.
+
+| Fusión poseída | CardID | Atributo | Enmascarados que gana |
+| --- | --- | --- | --- |
+| Flame Wingman | 6344 | VIENTO | Blast 4671, Divine Wind 4681 |
+| Tempest | 6487 | VIENTO | Blast 4671, Divine Wind 4681 |
+| Rampart Blaster | 6486 | TIERRA | Dian 4673 |
+| Mudballman | 6529 | TIERRA | Dian 4673 |
+| Wildedge | 6488 | TIERRA | Dian 4673 |
+| Thunder Giant | 6345 | LUZ | Koga 4686 |
+| Steam Healer | 6535 | AGUA | Ácido 4661, Vapor 4689 |
+
+⇒ **+10 registros** (Dian pasa a 6 bases: Clayman, Bladedge, Wildheart, Rampart Blaster, Mudballman,
+Wildedge). El deck no posee Fusiones HÉROE de OSCURIDAD ni de FUEGO ⇒ Anki, Dark Law, Goka y Atómico no
+ganan bases. **Mapa: 94 + 12 + 10 + 45 = 161 registros.**
+
+| hecho | valor |
+| --- | --- |
+| mapa | **161 registros** (94 nativos + 22 de base + 45 pares de Contraste Chaos) |
+| módulo | `trabajo/e7/libduel_eng_f3.prx`, **1.472.160 B** (`0x1676a0`), sha256 `9b6c1fceb6b13cc7ba99c308a47a636c5967a2651510127508dd22d682dfac15` |
+| ISO | `trabajo/e7/TF1-E7-F3.iso`, **798.787.584 B** (mismo tamaño que G6), sha256 `85ca0409ea1b1fb4a4ba44b60427bac18d9b29119846a1e7d54e0f3473f77974` |
+| geometría | igual que F1/F2, con la carga útil en **1296 B** (`0x510`): 2º `PT_LOAD` en `VMA 0x112910`, finder con largo **161** (`sltiu 0xa1` en file `0xa04dc`) y fin en `VMA 0x112e18` (los 4 sitios) |
+| huella | los mismos **15 bytes** distintos dentro de `[0,0x16714a)` + 1366 bytes agregados; **6 sectores** distintos en la ISO; G6, F1 y F2 byte-idénticos (pins re-verificados) |
+| herramienta | la ampliación fue **edición de datos**: tupla nueva `FUSION_HERO_BASES` + contadores y punteros **derivados** (largo del finder, tamaño de carga útil, fin de tabla) y el pin de producto `DIAN_BASES` en el `verify`. Corregido el rótulo del `dump` (contaba entradas de mapa, no registros) |
+| auto-verificación | subcomandos `verify` e `iso`: **OK** — 6 palabras + `e_phoff`/`e_phnum` + el rango agregado; tabla de secciones intacta; 2 segmentos sin solape; la tabla de 161 resuelve; en la ISO difieren exactamente los **6 sectores** esperados y el resto de los 798.787.584 B es byte-idéntico |
+| verificación (T14) | verificador read-only **independiente** (sin usar la herramienta del escritor, `tfcard.py` sólo como lector de contraste): **PASS en S2, S3, S4 y S6** + **igualdad de atributo 10/10**. Medido: PH2 exacto y rangos disjuntos; tabla de secciones byte-idéntica; **15 bytes** distintos exactamente los declarados; 161 registros únicos con los primeros 94 byte-idénticos, los 22 de base exactos y los 45 pares exactos; las 94 nativas resuelven en el **mismo índice**; en la ISO el módulo es byte-idéntico y difieren exactamente los **6 sectores** con `libduel_mgr.prx` intacto; Dian con sus 6 bases en orden. La batería quedó como herramienta reproducible: **`tools/e7_f3_probe.py`** (manual: depende de `trabajo/`) |
+
+**Pendiente (una sola ronda in-game, T5/T12/T15)**: sobre `trabajo/e7/TF1-E7-F3.iso`, (a) Dian con
+cualquiera de sus 6 bases de TIERRA + «Cambio de Máscara»; (b) una fusión **nativa** (Flame Wingman) que
+siga resolviendo.

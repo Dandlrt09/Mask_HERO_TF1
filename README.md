@@ -16,7 +16,7 @@ and can be regenerated with the tools in `tools/`.
 | E1-test | Append one new card on a free ID and reuse existing artwork | Done — the engine reads the appended record; the "Forbidden" verdict is positional, not content (`ESTADO-E1-test.md`) |
 | E5 | Lift the engine's card-index limit so no real card is lost | Done — strategy C patches the level reader; `BOOT.BIN` is an unencrypted ELF (`ESTADO-E5-limite.md`) |
 | E6 | Port the 18 **Masked HERO** cards (data + save) | **Done and validated in game** — 18-card content table, ownership in the save, the 2480-index limit lifted (`ESTADO-E6.md`) |
-| E7 | Make the 11 Masked HERO Fusion-summonable from a native recipe table | **Offline verified; in-game check pending** — 151 recipes in a second `PT_LOAD` (`ESTADO-E7.md`) |
+| E7 | Make the 11 Masked HERO Fusion-summonable from a native recipe table | **Offline verified; in-game round pending** — 161 recipes in a second `PT_LOAD` (round F3); "Mask Change" as a Fusion material already confirmed in game (`ESTADO-E7.md`) |
 | E8 | Build and inject the 18 real card arts | Delivered for field/duel, deck editor and name bar; the big-card (`cardh`) geometry is open (`ESTADO-E8.md`) |
 | E9 | ARC-V Tag Force Special as a reference for "Mask Change" | Done — TFSP resolves by card id, so no reusable data handler (`ESTADO-E9.md`) |
 
@@ -90,9 +90,12 @@ python3 tools/e6_build_18.py
 python3 tools/e6_patch_save.py grant --save <DATA0> --out <DATA0.18>
 
 # E7: patch the fusion recipe table and build the product ISO (`verify` re-checks it)
-python3 tools/e7_fusion.py patch --out trabajo/e7/libduel_eng_f2.prx
+python3 tools/e7_fusion.py patch --out trabajo/e7/libduel_eng_f3.prx
 python3 tools/e7_fusion.py verify --pristine <pristine.prx> --patched <patched.prx>
-python3 tools/e7_fusion.py iso --out trabajo/e7/TF1-E7-F2.iso
+python3 tools/e7_fusion.py iso --out trabajo/e7/TF1-E7-F3.iso
+
+# E7/T14: replay the independent verification battery of the F3 artifacts (manual: reads trabajo/)
+python3 tools/e7_f3_probe.py
 
 # E8: build and inject the 18 real card arts
 python3 tools/tf1_art18.py
@@ -114,16 +117,15 @@ git submodule update --init --recursive
 
 ## Next steps
 
-1. **E7 in-game check** — run `trabajo/e7/TF1-E7-F2.iso` in PPSSPP with two signals:
-   Dian with Bladedge or Wildheart + "Mask Change", and a native Fusion (`Flame Wingman`)
+1. **E7 in-game round** — run `trabajo/e7/TF1-E7-F3.iso` in PPSSPP with two signals:
+   Dian with any owned EARTH base (Clayman, Bladedge, Wildheart, Rampart Blaster,
+   Mudballman, Wildedge) + "Cambio de Mascara", and a native Fusion (`Flame Wingman`)
    that must still resolve. Closes T5/T12 (`odd/tasks/e7-recetas-fusion.md`).
-2. **E7 map decision** — whether to also accept the 7 owned Fusion HERO as bases
-   (+10 records, inside the 432 B of slack).
-3. **E8 geometry** — the exact big-card (`cardh`) fold and the Spanish name in the bar
+2. **E8 geometry** — the exact big-card (`cardh`) fold and the Spanish name in the bar
    (`ESTADO-E8.md` §9.16).
-4. **Effects front** — write the real "Mask Change" effect as ARM code, using the second
+3. **Effects front** — write the real "Mask Change" effect as ARM code, using the second
    `PT_LOAD` as the new code space and `ESTADO-E9.md` as the reference.
-5. **AI probe** — does a genre bit such as `SpecialSummon` change how the AI evaluates
+4. **AI probe** — does a genre bit such as `SpecialSummon` change how the AI evaluates
    and plays a card?
 
 Delivery for this repository is sliced as chained PRs; see
