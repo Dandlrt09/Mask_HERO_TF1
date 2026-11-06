@@ -7,7 +7,9 @@ reordena en cortes por fase sin perder contenido.
 ## Specs
 
 - **S1 — Estrategia.** `chain_strategy=stacked-to-main`: cada PR apunta a `main` o a su PR padre hasta
-  que el padre mergee; los cortes aterrizan en orden.
+  que el padre mergee; los cortes aterrizan en orden. **Orden de merge: descendente** (L2) — del PR de
+  número mayor al menor, con el PR cuya base es `main` al final: cada merge aterriza en la **rama base**
+  del PR, así el contenido fluye hacia `main` sin PR de integración.
 - **S2 — Cortes.** Un corte por fase, en orden: E1-test / E5 / E6 / E7 / E8 / E9, más un corte final de
   documentación (README + este documento).
 - **S3 — Sin pérdida.** El árbol del último corte debe ser **idéntico** al árbol de `spike/e1-test`:
@@ -26,7 +28,7 @@ reordena en cortes por fase sin perder contenido.
 | D1 | S3, S4 | Construir las ramas de corte por fase (reordenar la historia con cherry-pick sobre `main`). | inline | — |
 | D2 | S3 | Verificar la invariante de árbol (último corte == `spike/e1-test`, mismo conteo de commits). | inline | — |
 | D3 | S2 | Escribir el README actualizado y este documento en el corte final. | inline | — |
-| D4 | S1, S5 | Pushear las ramas y abrir los PRs stacked con Chain Context. | user | — |
+| D4 | S1, S5 | Pushear las ramas y abrir los PRs stacked con Chain Context. | user | hecho (L2) — PRs #1–#7 mergeados en `main`, más el #8 de integración |
 
 ## Log
 
@@ -52,5 +54,15 @@ reordena en cortes por fase sin perder contenido.
   fase.
 - **D3** (ejecutado, 2026-11): README con la tabla de estado de E0–E9, layout, tools y próximos pasos;
   este documento.
-- **D4** (pendiente, usuario): `git push` de las 7 ramas y apertura de los 7 PRs stacked. Nada se
-  mergea sin decisión del usuario.
+- **D4** (ejecutado por el usuario, 2026-11): `git push` de las 7 ramas y apertura de los PRs, y
+  **mergeados en `main`** (los 7 cortes por fase más un PR de integración, `#8`; `main` queda en el
+  merge `42af335`). Nada se mergeó sin decisión del usuario.
+- **L2** (usuario, verbatim): «Ya hice los merges, falta algo mas para estar al día con el repo» →
+  «Listo, mergeado» → **«Mejor dicho, se mergea desde el pr mayor al menor»**. La última frase corrige
+  la convención: con bases fijas, **el merge va en orden descendente** (tip primero, PR sobre `main`
+  último), porque cada merge aterriza en la rama base del PR. Mergear ascendente (que fue lo que pasó)
+  deja `main` sólo con el primer corte y obliga a un PR de integración aparte (el `#8`, 24 archivos).
+  El costo del orden descendente es que el último merge muestra el diff acumulado contra `main`; es
+  inocuo porque la revisión ya ocurrió corte por corte contra cada rama padre. Corregido en **S1**.
+  Consecuencia de estado: `main` es la rama canónica y contiene también este documento; la rama
+  `spike/e1-test` queda como registro de la historia original.
