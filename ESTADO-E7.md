@@ -355,4 +355,57 @@ ganan bases. **Mapa: 94 + 12 + 10 + 45 = 161 registros.**
 
 **Pendiente (una sola ronda in-game, T5/T12/T15)**: sobre `trabajo/e7/TF1-E7-F3.iso`, (a) Dian con
 cualquiera de sus 6 bases de TIERRA + «Cambio de Máscara»; (b) una fusión **nativa** (Flame Wingman) que
-siga resolviendo.
+siga resolviendo. — **Contestada en §8.7**: el intento in-game del usuario falló con **Wildheart** y
+funcionó con **Clayman**, y la causa medida es el límite del motor, no el mapa.
+
+### 8.7 Ronda F4 (reconciliación: una receta alcanzable por resultado) — 2026-11
+
+**Motivo**: el usuario probó F3 en PPSSPP — «No funcionó, pude hacer una fusion normal pero para traer a
+Dian con filo salvaje y cambio de mascara no funciono» — con «Cambio de Máscara» **en la mano** y la base
+primero en la mano y después invocada al campo. La medición estática explicó el fallo por completo.
+
+**El límite del motor (medido por dos analistas read-only independientes)**: la tabla de recetas se lee
+**solo** por el finder `.text 0xa0454`, que devuelve el **primer** registro de cada `result`; sus únicos
+dos llamadores son `classifier` (`0xa0530`, jal en `0xa055c`) y `get_material(result, slot)` (`0xa0590`,
+jal en `0xa05e4`), ambos indexados por resultado; los **94 resultados nativos son todos distintos** ⇒ el
+motor nunca necesitó elegir entre dos recetas del mismo resultado, y **ningún camino lee un registro
+posterior al primero**. Consecuencia sobre F3: **56 de sus 161 registros eran inertes** (Bladedge idx 99,
+Wildheart idx 100, los tres HÉROE de Fusión de TIERRA y 44 de los 45 pares de Chaos).
+
+**Pools de materiales (medidos)**: struct por jugador `0x10e4ec + jugador·4012`; **mano** en `+288+slot·4`
+(count `+12`, código de ubicación 11) **primero**, después las **5 zonas de monstruo** `+48+zona·20`
+(0..4); el resolutor es `0xa10c4`/`0xa0d2c` con el localizador `0xa0c60`. La **oferta del menú 12**
+(`0xb4058`) mira **solo zonas de monstruo**, la del menú 14 (`0xb440c`) solo el cementerio. Una **Mágica**
+—como «Cambio de Máscara» 4704— **solo puede venir de la mano**. Esto explica por qué la pantalla de
+fusión no listaba a Dian ni siquiera con el registro alcanzable, y por qué la vía que sí funciona es la
+**activación/resolución** (así se invocó 4690 en F1 y Dian en F3).
+
+**Reconciliación F4 (decisión del usuario)**: **una receta alcanzable por resultado**, 94 + 10 + 1 =
+**105 registros**; Dian con **Clayman** (lo confirmado in-game) y Contraste Chaos con **Cuervo del
+Crepúsculo 4697 + Fuente 4701**. Revertidas la ampliación de L12/L14 (bases extra del mismo atributo) y
+los 45 pares.
+
+| hecho | valor |
+| --- | --- |
+| mapa | **105 registros** = 94 nativos + 10 de base + 1 de Chaos; **0 resultados con más de un registro** |
+| módulo | `trabajo/e7/libduel_eng_f4.prx`, **1.471.712 B** (`0x1674e0`), sha256 `c2873ad9680e66d07d2fbda51b858d0affc783db868e4810e11e661a330aa650` |
+| ISO | `trabajo/e7/TF1-E7-F4.iso`, **798.787.584 B**, sha256 `4323b0aa2ded8753230159d6a5517bf1a2f8f6747fd145ade1f70f6e37462b96` |
+| geometría | 2º `PT_LOAD` en `VMA 0x112910`, carga útil **848 B** (`0x350`), finder con largo **105** (`sltiu 0x69`), fin de tabla `VMA 0x112c58`; holgura **800 B** |
+| huella | **15 bytes** distintos en `[0,0x16714a)` + 918 agregados; **6 sectores** (`38, 12048, 12368, 12389, 12390, 12766`); G6, F1, F2 y F3 byte-idénticos |
+| herramienta | la reconciliación fue **edición de datos** (una tupla borrada, `CHAOS_PAIR` explícito) + un `verify` nuevo que exige **una receta por resultado** |
+| verificación (T17) | **independiente: PASS en las 6 afirmaciones** — tabla y orden de los 11 nuevos exactos; 105 resultados con **count 1 y 0 tapados**; PH1 `(1,0x167190,0x112910,0x112910,848,848,7,16)` y las 94 nativas en el **mismo índice**; ISO con exactamente los 6 sectores y `libduel_mgr.prx` intacto; **10/10** atributos base↔resultado y el par de Chaos con `kind 1` (baraja principal); pins de F1/F2/F3 intactos. Sonda `tools/e7_first_match_probe.py` (manual) en verde |
+
+**El sustituto: la vía práctica para «cualquier HÉROE» (L17)**. «Rey del Pantano» **6044** está en la
+lista **hardcodeada** de sustitutos de material del motor — `BOOT.BIN` VMA `0x4a4d8` `is_substitute`,
+lista `{6258, 6257, 6256, 6044, 4648, 4275, 4264, 4115}` — y la rama del sustituto (`libduel_eng`
+`0xa0754`/`0xa091c`) llena el primer slot real sin cubrir, **incluida la base** de nuestros registros.
+Permite **un** sustituto por fusión (bandera en `0x10D08C`, `xori v1,v0,1` en `0xa0dbc`) y su lista de
+exclusión (`BOOT.BIN 0x4a54c`) **no** contiene ningún Enmascarado. Resultado práctico:
+`Polimerización + Rey del Pantano + «Cambio de Máscara»` (los tres en la mano) invoca **cualquiera de los
+10**; y `Rey del Pantano + Fuente + Polimerización` invoca Contraste Chaos. Es **ciego al atributo**
+(aplana la regla de S2/L12) y **King solo no alcanza** (no puede llenar dos slots). No hay bit de
+`CARD_Prop`/`CARD_Genre` que marque al sustituto: es solo la lista de ids en código.
+
+**Pendiente (una sola ronda in-game, T18)**: sobre `trabajo/e7/TF1-E7-F4.iso`: (a) Dian con **Clayman** +
+«Cambio de Máscara» (re-confirmación de F4); (b) **Rey del Pantano + «Cambio de Máscara»** ⇒ cualquier
+Enmascarado; (c) Contraste Chaos con **Cuervo + Fuente**.
