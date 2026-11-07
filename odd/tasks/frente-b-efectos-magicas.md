@@ -349,3 +349,14 @@ Objetivo: que las 4 Mágicas del port ejecuten su **efecto real** en el motor de
   escribir el handler del efecto real con las tres restricciones anotadas en la fila de T4.
   Artefactos de la ronda: `trabajo/b1/libduel_eng_exp5.prx` (sha256 `ef905398…427`),
   `trabajo/b1/TF1-B1-EXP5.iso` (798.787.584 B, sha256 `0651b845…48f`).
+- **L10** (usuario, verbatim): «Mejor comitea y push, T4 es para mañana».
+- **E24** (entrega, L10): las dos unidades de trabajo de la fase, **commiteadas y pusheadas**. En `main`:
+  `7d4fadf` `feat(b1): add the front-B probe tool for the TF1 effect dispatch tables`
+  (`tools/b1_probe.py`, **2.105 líneas** — se **declara el exceso** de la rebanada de ~400: es un script
+  cohesivo y separar por rama de sonda dejaría commits intermedios no verificables) y `481eb98`
+  `docs(b1): open the front-B phase document for the Mask Change effect`
+  (`odd/tasks/frente-b-efectos-magicas.md`, 351 líneas). Push a `origin/main` (`53dead9..481eb98`) ⇒
+  **`main` queda en sync** con el remoto. Los informes de `trabajo/b1/` **no** entran: `trabajo/` está
+  en `.gitignore` por convención del repo (igual que los artefactos de E7 y E9).
+  **Estado de la fase**: T4 (el efecto real de 4704) queda **para la próxima sesión**, a pedido del
+  usuario.
