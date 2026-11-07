@@ -109,7 +109,7 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
 | T15 | S5, S6 | Ronda in-game única sobre `TF1-E7-F3.iso`, higiene de docs (README + entrega) y cierre de la fase. | user + inline | — |
 | T16 | S2, S6, S8 | Ronda **F4**: reconciliar el mapa a **una receta por resultado** (Dian con Clayman; Chaos = Cuervo + Fuente) y construir `libduel_eng_f4.prx` + `TF1-E7-F4.iso`. | worker | hecho (E25) |
 | T17 | S4, S8 | Verificación **independiente** de F4: los 105 registros, cero tapados, geometría, ISO y producto. | verify | hecho — PASS 6/6 (E25) |
-| T18 | S5, S9 | Ronda in-game del usuario sobre `TF1-E7-F4.iso` (Dian con Clayman; Rey del Pantano + «Cambio de Máscara»; Chaos con Cuervo + Fuente). | user | pendiente |
+| T18 | S5, S9 | Ronda in-game del usuario sobre `TF1-E7-F4.iso` (Dian con Clayman; Rey del Pantano + «Cambio de Máscara»; Chaos con Cuervo + Fuente). | user | hecho y **validado** (L18, E26) |
 
 ## Log
 
@@ -378,3 +378,11 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
   nativas en el **mismo índice**; ISO con exactamente los 6 sectores y `libduel_mgr.prx` intacto; **10/10**
   atributos base↔resultado; y el par de Chaos con `kind 1` (baraja principal). Pins de F1/F2/F3 intactos.
   Sonda nueva `tools/e7_first_match_probe.py` (manual) en verde; la batería de F3 sigue en verde.
+- **L18** (usuario, resultado de la ronda in-game, verbatim): «Ronda terminada y todo funciona
+  correctamente. guarda los apuntes y dime que seguiria» ⇒ **las tres señales de T18 pasan**: Dian con
+  Clayman, Rey del Pantano + «Cambio de Máscara» y Contraste Chaos con Cuervo + Fuente.
+- **E26** (T18, validado in-game, 2026-11): con esto **E7 (frente A) queda cerrado**: las 10 recetas con
+  una base cada una, el sustituto de Rey del Pantano como vía de «cualquier Enmascarado» y Contraste
+  Chaos con el par de baraja principal. Lo que queda fuera de alcance es el **frente B** (el efecto real
+  de las 4 Mágicas como código ARM), que es lo único que puede reproducir «cualquier HÉROE del mismo
+  atributo» de la carta real.

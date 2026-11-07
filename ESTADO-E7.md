@@ -406,6 +406,7 @@ exclusión (`BOOT.BIN 0x4a54c`) **no** contiene ningún Enmascarado. Resultado p
 (aplana la regla de S2/L12) y **King solo no alcanza** (no puede llenar dos slots). No hay bit de
 `CARD_Prop`/`CARD_Genre` que marque al sustituto: es solo la lista de ids en código.
 
-**Pendiente (una sola ronda in-game, T18)**: sobre `trabajo/e7/TF1-E7-F4.iso`: (a) Dian con **Clayman** +
-«Cambio de Máscara» (re-confirmación de F4); (b) **Rey del Pantano + «Cambio de Máscara»** ⇒ cualquier
-Enmascarado; (c) Contraste Chaos con **Cuervo + Fuente**.
+**Validado in-game (T18, 2026-11)**: la ronda del usuario sobre `trabajo/e7/TF1-E7-F4.iso` terminó con
+**todo funcionando** sobre las tres señales pedidas — Dian con **Clayman** + «Cambio de Máscara», **Rey
+del Pantano + «Cambio de Máscara»** (cualquier Enmascarado) y Contraste Chaos con **Cuervo + Fuente**.
+Con esto **E7 (frente A) queda cerrado**, salvo el frente B.
