@@ -17,8 +17,8 @@ What it pins (ESTADO-E7.md L15/L16):
   * the pristine sha256 and the pristine finder words: `lui a1,0x11` (file
     0xa04b4), `addiu a1,a1,0xacb4` -> base VMA 0x10acb4 (file 0xa04c0) and the
     bound `sltiu a2,v0,0x5e` -> 94 records (file 0xa04dc);
-  * the F4 `.prx` (1471712 B): the 6 patched words (finder base, `sltiu` = 105,
-    and the four table-end pointers), plus `e_phoff`/`e_phnum`;
+  * the F4 `.prx` (1471712 B, sha256 pinned): the 6 patched words (finder base,
+    `sltiu` = 105, and the four table-end pointers), plus `e_phoff`/`e_phnum`;
   * the caller census over the scanned `.text` range (file 0x60..0x60+0xfa218):
     the finder at VMA 0xa0454 has EXACTLY two `jal` callers (VMA 0xa055c and
     0xa05e4, both result-keyed), none into its interior, and the pristine domain
@@ -41,6 +41,7 @@ PATCHED = "trabajo/e7/libduel_eng_f4.prx"
 PRISTINE_SIZE = 1470794
 PRISTINE_SHA = "6867fb17d48479a429cb71b660daa7ebb8e4be90e0a63c2f4c619ceaa54bcf91"
 PATCHED_SIZE = 1471712
+PATCHED_SHA = "c2873ad9680e66d07d2fbda51b858d0affc783db868e4810e11e661a330aa650"
 
 FILE_DELTA = 0x60                      # file = VMA + 0x60
 TEXT_LO = 0x60
@@ -140,6 +141,7 @@ def main():
     print("--- 2. F4 module words, header fields and size")
     check(len(patched) == PATCHED_SIZE,
           f"patched size {len(patched)} == {PATCHED_SIZE}")
+    check(sha256(PATCHED) == PATCHED_SHA, f"patched sha256 == {PATCHED_SHA}")
     for off, old, new, label in PATCHED_WORDS:
         old_got = u32(pristine, off)
         new_got = u32(patched, off)

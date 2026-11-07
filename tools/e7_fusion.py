@@ -600,9 +600,11 @@ def verify_pair(pristine: bytes, patched: bytes) -> tuple[list[str], dict]:
     if multi:
         fails.append(f"{len(multi)} result(s) have more than one record and are "
                      f"shadowed by the first-match finder: {multi}")
-    # the new results are exactly the 10 Masked HERO ids + 4696
+    # the new results are exactly the 10 Masked HERO ids + 4696.  The left side
+    # comes from the records that were actually emitted, not from the same map
+    # expression as the right side, so this check can fail (it was vacuous).
     want_new = sorted(set(r for r, _base in MASKED_HEROES) | {CHAOS})
-    got_new = sorted(set(NEW_RESULTS))
+    got_new = sorted({r[0] for r in recs[NATIVE_COUNT:]})
     ev["new_results"] = got_new
     if got_new != want_new:
         fails.append(f"new results are {got_new}, expected exactly {want_new} "
