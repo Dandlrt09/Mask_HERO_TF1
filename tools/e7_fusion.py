@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""E7/T10-T14: grow the native fusion recipe table (the L12+L14 map) and build the
-product ISO.
+"""E7/F4: grow the native fusion recipe table with ONE reachable recipe per
+result and build the product ISO.
 
 The native engine reads fusion recipes from a `libduel_eng.prx` `.data` table at
 VMA `0x10acb4` (94 records of 8 bytes `(result, mat1, mat2, mat3)` + the
@@ -11,11 +11,28 @@ the layout the EXP2 probe already booted (T1-PLAN.md section 4, S-A):
 
   * append a second `PT_LOAD` segment past EOF, inside the ISO's allocated
     extent for the module, so the ISO does not grow and no other file moves;
-  * copy the 94 native records verbatim, append the Masked HERO base recipes
-    (E-HERO bases per L12 -- Dian has three: Clayman 6312, Bladedge 6477,
-    Wildheart 6478 -- plus the owned Fusion HEROes per L14) and the 45 unordered
-    pairs for `Contraste Chaos` (CardID 4696), and re-point the finder base, its
+  * copy the 94 native records verbatim, then append exactly ONE recipe per
+    Masked HERO result (the L12 base E-HERO + "Cambio de Mascara") plus the
+    single reachable `Contraste Chaos` pair, and re-point the finder base, its
     length and the four table-end pointers.
+
+ENGINE CONSTRAINTS this data depends on (measured; ESTADO-E7.md L15/L16):
+
+  * The finder at `.text` VMA `0xa0454` is a LINEAR ascending scan that returns
+    the FIRST record whose `result` matches (`bnel` on mismatch, bound
+    `sltiu a2,0x5e`).  It has exactly two callers -- the classifier at VMA
+    `0xa0530` (jal at `0xa055c`) and `get_material(result, slot)` at VMA
+    `0xa0590` (jal at `0xa05e4`) -- both result-keyed, and the 94 native results
+    are all distinct.  A result with several records is therefore NOT "one
+    result, several alternative material sets": only the FIRST record per result
+    is ever read and every later one is dead data.  (The L14 amplification
+    shipped 56 such shadowed records; L15/L16 rolled it back.)
+  * Consequence: the table CANNOT express "any HERO of the same attribute"
+    (several bases for one result) nor "any two Masked HEROes" (45 unordered
+    pairs for `Contraste Chaos`).  The table carries exactly one material set per
+    result; the real card behaviour is left for the code phase (front B).
+  * So this round (F4) keeps exactly one record per result, which is what makes
+    every recipe reachable.
 
 Every count, size, immediate and pointer below is DERIVED from the S2 record
 map, so amplifying that map later is a data-only edit.
@@ -45,19 +62,19 @@ verified the whole mechanism end to end:
     64-byte table: entry 0 = byte copy of the original PH, entry 1 = new segment.
   * entry 1: type 1, p_offset = `PAYLOAD_OFF = 0x167190`, p_vaddr = p_paddr =
     0x112910 (= vaddr end of segment 1), p_filesz = p_memsz = `PAYLOAD_SIZE`
-    (1296 B with the L14 map), flags 7, align 16.  p_offset % 16 == p_vaddr %
+    (848 B with the F4 map), flags 7, align 16.  p_offset % 16 == p_vaddr %
     16 == 0.
-  * payload: `PAYLOAD_SIZE` bytes at 0x167190 = 94 copied records + the Masked
-    HERO base recipes (E-HERO `MASKED_HEROES` + owned Fusion HERO
-    `FUSION_HERO_BASES`) + the 45 `Contraste Chaos` pairs + the `(10,0,0,0)`
+  * payload: `PAYLOAD_SIZE` bytes at 0x167190 = 94 copied records + one Masked
+    HERO recipe per result (`MASKED_HEROES`, L12 base + Mask Change) + the
+    single reachable `Contraste Chaos` pair (`CHAOS_PAIR`) + the `(10,0,0,0)`
     terminator.
   * code patches (only the low half of each immediate changes; `%hi` is 0x11 at
     every site): finder base -> 0x112910, `sltiu` bound 0x5e -> `TABLE_COUNT`
-    (0xa1 = 161), four end pointers -> `TABLE_END_VMA` (0x112e18 with the L14
+    (0x69 = 105), four end pointers -> `TABLE_END_VMA` (0x112c58 with the F4
     map).
-  * `e_phoff = 0x167150`, `e_phnum = 2`; new file size = `NEW_SIZE` (0x1676a0 =
-    1472160 with the L14 map), inside the ISO's 1472512-byte allocation for the
-    module (352 B slack: the L14 map still needs no ISO growth).
+  * `e_phoff = 0x167150`, `e_phnum = 2`; new file size = `NEW_SIZE` (0x1674e0 =
+    1471712 with the F4 map), inside the ISO's 1472512-byte allocation for the
+    module (800 B slack: the F4 map still needs no ISO growth).
 
 Subcommands (every one refuses to write when an invariant fails):
 
@@ -84,7 +101,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import itertools
 import os
 import shutil
 import struct
@@ -100,8 +116,8 @@ from iso9660 import SECTOR, Iso9660      # noqa: E402
 PRX_IN_ISO = "PSP_GAME/USRDIR/gmodule/libduel_eng.prx"
 NEXT_MODULE_IN_ISO = "PSP_GAME/USRDIR/gmodule/libduel_mgr.prx"
 DEFAULT_SRC_ISO = os.path.join(ROOT, "trabajo", "e8", "TF1-E8-G6.iso")
-DEFAULT_OUT_PRX = os.path.join(ROOT, "trabajo", "e7", "libduel_eng_f2.prx")
-DEFAULT_OUT_ISO = os.path.join(ROOT, "trabajo", "e7", "TF1-E7-F2.iso")
+DEFAULT_OUT_PRX = os.path.join(ROOT, "trabajo", "e7", "libduel_eng_f4.prx")
+DEFAULT_OUT_ISO = os.path.join(ROOT, "trabajo", "e7", "TF1-E7-F4.iso")
 
 # --- measured constants ------------------------------------------------------
 PRX_SIZE = 1470794                        # 0x16714a
@@ -131,58 +147,50 @@ NATIVE_COUNT = 94
 TERMINATOR = (10, 0, 0, 0)
 
 # --- S2 material map (the only data-only edit surface) -----------------------
-# Each Masked HERO result maps to the E-HERO bases of its own attribute that the
-# deck recipe already owns (L12).  Dian (TIERRA) is the only one with more than
-# one base, which is why the value is a tuple.  Every count, size, immediate and
+# ENGINE CONSTRAINTS (measured; ESTADO-E7.md L15/L16): the finder at `.text`
+# VMA 0xa0454 returns the FIRST record for a given `result` (linear ascending
+# scan, `bnel` on mismatch, bound `sltiu a2,0x5e`), and its only two callers --
+# the classifier (VMA 0xa0530) and `get_material(result, slot)` (VMA 0xa0590) --
+# are result-keyed, with the 94 native results all distinct.  So a result must
+# have EXACTLY ONE record here; a second record for the same result is dead data
+# (the L14 amplification shipped 56 such shadowed records).  The table can
+# therefore NOT express "any HERO of the same attribute" or "any two Masked
+# HEROes"; that real card behaviour belongs to the code phase (front B).
+# Each Masked HERO result maps to the single E-HERO base of its own attribute
+# that the deck recipe already owns (L12).  Every count, size, immediate and
 # pointer below is derived from this map: amplifying it is a data-only change.
 MASK_CHANGE = 4704                        # "Cambio de Mascara" / Mask Change
 CHAOS = 4696                              # Contraste Chaos: 2 Masked HERO
-# (result CardID, (base E-HERO CardIDs...)) in S2 listed order
+# (result CardID, base E-HERO CardID) in S2 listed order -- ONE base each.
 MASKED_HEROES = (
-    (4661, (6393,)),          # Acid        / Bubbleman
-    (4665, (6527,)),          # Anki        / Necroshade
-    (4671, (6310,)),          # Blast       / Avian
-    (4672, (6527,)),          # Dark Law    / Necroshade
-    (4673, (6312, 6477, 6478)),   # Dian    / Clayman, Bladedge, Wildheart
-    (4681, (6310,)),          # Divine Wind / Avian
-    (4684, (6311,)),          # Goka        / Burstinatrix
-    (4686, (6313,)),          # Koga        / Sparkman
-    (4689, (6393,)),          # Vapor       / Bubbleman
-    (4690, (6311,)),          # Atomic      / Burstinatrix
+    (4661, 6393),             # Acid        / Bubbleman
+    (4665, 6527),             # Anki        / Necroshade
+    (4671, 6310),             # Blast       / Avian
+    (4672, 6527),             # Dark Law    / Necroshade
+    (4673, 6312),             # Dian        / Clayman (the one confirmed in game)
+    (4681, 6310),             # Divine Wind / Avian
+    (4684, 6311),             # Goka        / Burstinatrix
+    (4686, 6313),             # Koga        / Sparkman
+    (4689, 6393),             # Vapor       / Bubbleman
+    (4690, 6311),             # Atomic      / Burstinatrix
 )
-# L14 (user decision, 2026-11): the real "Mask Change" takes ANY HERO monster,
-# so the 7 Fusion HEROes the deck already owns are bases too, under the same
-# attribute rule as L12.  Attributes are MEASURED, never remembered: the results'
-# attributes come from `datos/cartas_18.tsv` (attr column: 3 AGUA, 6 VIENTO,
-# 5 TIERRA, 1 LUZ) and the bases' from the pristine `trabajo/e2/eng` cardinfo.
-# The owned Fusion HEROes are WIND 6344/6487, EARTH 6486/6529/6488, LIGHT 6345
-# and WATER 6535; there is none of OSCURIDAD (Anki 4665, Dark Law 4672) or FUEGO
-# (Goka 4684, Atomic 4690), so those results get no extra base.
-# (result CardID, (owned Fusion HERO CardIDs of the same attribute...))
-FUSION_HERO_BASES = (
-    (4661, (6535,)),              # Acid        / AGUA   : Steam Healer
-    (4671, (6344, 6487)),         # Blast       / VIENTO : Flame Wingman, Tempest
-    (4673, (6486, 6529, 6488)),   # Dian        / TIERRA : Rampart Blaster,
-                                  #                       Mudballman, Wildedge
-    (4681, (6344, 6487)),         # Divine Wind / VIENTO : Flame Wingman, Tempest
-    (4686, (6345,)),              # Koga        / LUZ    : Thunder Giant
-    (4689, (6535,)),              # Vapor       / AGUA   : Steam Healer
-)
-# Product pin for the record order this tool emits: every owned TIERRA base of
-# Dian, E-HEROes first (L12) and Fusion HEROes after (L14).
-DIAN_BASES = (6312, 6477, 6478, 6486, 6529, 6488)
-NEW_RESULTS = tuple(r for r, _bases in MASKED_HEROES) + (CHAOS,)
-MASKED_BASE_COUNT = sum(len(bases) for _r, bases in MASKED_HEROES)      # 12
-FUSION_BASE_COUNT = sum(len(bases) for _r, bases in FUSION_HERO_BASES)  # 10
-S2_BASE_COUNT = MASKED_BASE_COUNT + FUSION_BASE_COUNT                   # 22
-CHAOS_COUNT = len(list(itertools.combinations(NEW_RESULTS[:-1], 2)))    # 45
-S2_COUNT = S2_BASE_COUNT + CHAOS_COUNT                                  # 67
-TABLE_COUNT = NATIVE_COUNT + S2_COUNT                                   # 161
-PAYLOAD_SIZE = TABLE_COUNT * 8 + 8                                      # 1296
-NEW_SIZE = PAYLOAD_OFF + PAYLOAD_SIZE                                   # 0x1676a0
+# L15/L16 (user decision): "Contraste Chaos" (4696) fuses the only TWO Masked
+# HEROes that live in the MAIN deck -- "Heroe Enmascarado Cuervo del Crepusculo"
+# (4697) and "Heroe Enmascarado Fuente" (4701).  The other eight Masked HEROes
+# are Fusion monsters in the Extra Deck and can never be held as materials, so
+# the 45 unordered pairs of L14 were unreachable and are replaced by this single
+# explicit pair.
+CHAOS_PAIR = (4697, 4701)
+NEW_RESULTS = tuple(r for r, _base in MASKED_HEROES) + (CHAOS,)
+S2_BASE_COUNT = len(MASKED_HEROES)        # 10, one reachable recipe per result
+CHAOS_COUNT = 1                           # exactly one explicit CHAOS_PAIR
+S2_COUNT = S2_BASE_COUNT + CHAOS_COUNT    # 11
+TABLE_COUNT = NATIVE_COUNT + S2_COUNT     # 105
+PAYLOAD_SIZE = TABLE_COUNT * 8 + 8        # 848 (0x350)
+NEW_SIZE = PAYLOAD_OFF + PAYLOAD_SIZE     # 0x1674e0
 SEG2 = (1, PAYLOAD_OFF, SEG2_VADDR, SEG2_VADDR, PAYLOAD_SIZE, PAYLOAD_SIZE,
         7, 16)
-TABLE_END_VMA = SEG2_VADDR + TABLE_COUNT * 8                            # 0x112dc8
+TABLE_END_VMA = SEG2_VADDR + TABLE_COUNT * 8                            # 0x112c58
 
 
 # --- code patch plan (file offset, old word, new word, label) ----------------
@@ -300,15 +308,12 @@ def native_records(prx: bytes) -> list[tuple]:
 
 
 def s2_records() -> list[tuple]:
-    """The Masked HERO base recipes (E-HERO L12 + owned Fusion HERO L14) plus
-    the 45 unordered pairs."""
+    """One Masked HERO recipe per result (L12 base + Mask Change) plus the
+    single reachable `Contraste Chaos` pair."""
     masked = [(result, base, MASK_CHANGE, 0)
-              for result, bases in MASKED_HEROES for base in bases]
-    fused = [(result, base, MASK_CHANGE, 0)
-             for result, bases in FUSION_HERO_BASES for base in bases]
-    chaos = [(CHAOS, a, b, 0)
-             for a, b in itertools.combinations(NEW_RESULTS[:-1], 2)]
-    return masked + fused + chaos
+              for result, base in MASKED_HEROES]
+    chaos = [(CHAOS, CHAOS_PAIR[0], CHAOS_PAIR[1], 0)]
+    return masked + chaos
 
 
 def build_records(prx: bytes) -> tuple[list[tuple], list[tuple], list[tuple]]:
@@ -579,32 +584,41 @@ def verify_pair(pristine: bytes, patched: bytes) -> tuple[list[str], dict]:
                      f"{TERMINATOR}")
     # the Masked HERO base records mirror the S2 map exactly, in listed order
     masked_actual = tuple(recs[NATIVE_COUNT:NATIVE_COUNT + S2_BASE_COUNT])
-    masked_want = tuple((r, b, MASK_CHANGE, 0)
-                        for r, bases in MASKED_HEROES + FUSION_HERO_BASES
-                        for b in bases)
+    masked_want = tuple((r, base, MASK_CHANGE, 0)
+                        for r, base in MASKED_HEROES)
     ev["masked_records"] = masked_actual
     if masked_actual != masked_want:
         fails.append(f"Masked HERO base records {masked_actual} do not mirror "
                      f"the S2 map {masked_want}")
-    dian = tuple(r for r in recs if r[0] == 4673)
-    ev["dian_records"] = dian
-    want_dian = tuple((4673, b, MASK_CHANGE, 0) for b in DIAN_BASES)
-    if dian != want_dian:
-        fails.append(f"Dian (4673) records are {dian}, expected {want_dian}")
+    # THE reachability property: the finder only ever reads the FIRST record for
+    # a result, so every result in the table must have EXACTLY ONE record.
+    by_result: dict[int, list] = {}
+    for r in recs:
+        by_result.setdefault(r[0], []).append(r)
+    multi = sorted(t for t, rs in by_result.items() if len(rs) > 1)
+    ev["results_with_multiple_records"] = multi
+    if multi:
+        fails.append(f"{len(multi)} result(s) have more than one record and are "
+                     f"shadowed by the first-match finder: {multi}")
+    # the new results are exactly the 10 Masked HERO ids + 4696
+    want_new = sorted(set(r for r, _base in MASKED_HEROES) | {CHAOS})
+    got_new = sorted(set(NEW_RESULTS))
+    ev["new_results"] = got_new
+    if got_new != want_new:
+        fails.append(f"new results are {got_new}, expected exactly {want_new} "
+                     f"(the 10 Masked HERO ids + {CHAOS})")
     chaos = [r for r in recs[NATIVE_COUNT:] if r[0] == CHAOS]
     chaos_pairs = [tuple(sorted((r[1], r[2]))) for r in chaos]
-    want_pairs = [tuple(sorted(p))
-                  for p in itertools.combinations(NEW_RESULTS[:-1], 2)]
     ev["chaos_pairs"] = len(chaos_pairs)
     if len(chaos_pairs) != CHAOS_COUNT:
         fails.append(f"{len(chaos_pairs)} Contraste Chaos pairs, expected "
                      f"{CHAOS_COUNT}")
     if len(set(chaos_pairs)) != len(chaos_pairs):
         fails.append("Contraste Chaos pairs contain duplicates")
+    want_pairs = [tuple(sorted(CHAOS_PAIR))]
     if sorted(chaos_pairs) != sorted(want_pairs):
-        fails.append(f"Contraste Chaos pairs are not exactly the {CHAOS_COUNT} "
-                     f"unordered pairs of the {len(NEW_RESULTS) - 1} Masked "
-                     f"HERO")
+        fails.append(f"Contraste Chaos pairs are {chaos_pairs}, expected "
+                     f"exactly the single reachable pair {want_pairs}")
 
     # --- 7. finder simulation over the new image ------------------------
     first_new = {}
@@ -626,7 +640,7 @@ def verify_pair(pristine: bytes, patched: bytes) -> tuple[list[str], dict]:
                          f"is not one of its own records")
         first_new[t] = hit
     want_first = {4673: (4673, 6312, MASK_CHANGE, 0),
-                  CHAOS: (CHAOS, NEW_RESULTS[0], NEW_RESULTS[1], 0)}
+                  CHAOS: (CHAOS, CHAOS_PAIR[0], CHAOS_PAIR[1], 0)}
     for t, want in want_first.items():
         got = first_new.get(t)
         if got is None or got[1] != want:
@@ -748,7 +762,9 @@ def print_verify_evidence(ev: dict) -> None:
           f"duplicate records: {ev['duplicate_records']}")
     print(f"    word {TABLE_COUNT} (terminator): {ev['terminator']}")
     print(f"    Masked HERO base records: {list(ev['masked_records'])}")
-    print(f"    Dian (4673) records: {list(ev['dian_records'])}")
+    print(f"    results with more than one record (shadowed): "
+          f"{ev['results_with_multiple_records']}")
+    print(f"    new results: {ev['new_results']}")
     print(f"    Contraste Chaos (4696) pairs: {ev['chaos_pairs']}/{CHAOS_COUNT}, "
           f"all unique")
 
@@ -804,8 +820,7 @@ def cmd_dump(args) -> int:
     print("  idx  result  mat1  mat2  mat3  origin")
     for i, r in enumerate(recs):
         origin = "native" if i < NATIVE_COUNT else \
-            ("masked" if i < NATIVE_COUNT + MASKED_BASE_COUNT else
-             ("fusion" if i < NATIVE_COUNT + S2_BASE_COUNT else "chaos"))
+            ("masked" if i < NATIVE_COUNT + S2_BASE_COUNT else "chaos")
         print(f"  {i:3d}  {r[0]:6d}  {r[1]:5d}  {r[2]:5d}  {r[3]:5d}  {origin}")
     tail = ev["terminator"]
     print(f"  {len(recs):3d}  {tail[0]:6d}  {tail[1]:5d}  {tail[2]:5d}  "
@@ -893,7 +908,7 @@ def cmd_iso(args) -> int:
 
     print(f"--- 3. copy {args.src} -> {args.out} and replace the module in place")
     report = iso_replace.replace_file(args.src, args.out, PRX_IN_ISO,
-                                      patched_prx, label="E7-F2")
+                                      patched_prx, label="E7-F4")
     print(f"    old size {report['old_size']} -> new {report['new_size']} "
           f"(ceiling {report['ceiling']}); directory data-length updated; "
           f"roundtrip {report['roundtrip']}")
@@ -967,7 +982,7 @@ def build_parser() -> argparse.ArgumentParser:
     i.set_defaults(func=cmd_iso)
 
     d = sub.add_parser("dump",
-                       help=f"decode and print the {TABLE_COUNT} new records")
+                       help=f"decode and print the {TABLE_COUNT} records of the new table")
     common(d)
     d.add_argument("--patched", default=DEFAULT_OUT_PRX)
     d.set_defaults(func=cmd_dump)

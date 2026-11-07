@@ -2,8 +2,8 @@
 
 Fase E7, alcance A (decidido por el usuario). Todo el contexto del motor está medido en
 `ESTADO-E7.md` §7 y en `trabajo/e7/recon/E7-RECON-EFFECTS.md`.
-ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: `trabajo/e7/TF1-E7-F3.iso`
-(rondas F1 → F2 → F3; el mapa vigente es el de L14).
+ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: `trabajo/e7/TF1-E7-F4.iso`
+(rondas F1 → F2 → F3 → F4; el mapa vigente es el de L16).
 
 ## Specs
 
@@ -11,28 +11,29 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
   nuevo** en esta fase: se usa la tabla de recetas nativa. Fuera de alcance: los efectos de las 4
   Mágicas y los de los monstruos (frentes B y C de `ESTADO-E7.md` §3).
 - **S2 — Materiales.** `resultado = base E-HERO del mismo atributo + «Cambio de Máscara» (CardID
-  4704)`. Base por atributo: **todas las bases E-HERO del mismo atributo que la receta del deck ya
-  posee** (L12), donde la receta es `datos/receta_hero.tsv`:
+  4704)`. Base por atributo: **una sola base alcanzable por resultado** (F4; el motor devuelve solo el
+  **primer** registro de cada `result`, ver S8), elegida entre las que el recetario del deck ya posee
+  (L12), `datos/receta_hero.tsv`. Los atributos están **medidos** en el contenedor prístino:
 
-  | Fusión | CardID | Atributo | Base(s) E-HERO |
+  | Fusión | CardID | Atributo | Base E-HERO (única) |
   | --- | --- | --- | --- |
   | Ácido | 4661 | AGUA | Bubbleman 6393 |
   | Anki | 4665 | OSCURIDAD | Necroshade 6527 |
   | Blast | 4671 | VIENTO | Avian 6310 |
   | Dark Law | 4672 | OSCURIDAD | Necroshade 6527 |
-  | Dian | 4673 | TIERRA | Clayman 6312, **Bladedge 6477**, **Wildheart 6478** |
+  | Dian | 4673 | TIERRA | Clayman 6312 |
   | Divine Wind | 4681 | VIENTO | Avian 6310 |
   | Goka | 4684 | FUEGO | Burstinatrix 6311 |
   | Koga | 4686 | LUZ | Sparkman 6313 |
   | Vapor | 4689 | AGUA | Bubbleman 6393 |
   | Atómico | 4690 | FUEGO | Burstinatrix 6311 |
 
-  Son **12 registros** de base E-HERO (9 de una sola base + 3 de Dian) porque TIERRA es el único
-  atributo con más de una base poseída. `Necroshade 6527` **no** está en la receta del deck (Anki y Dark
+  Son **10 registros** de base, uno por resultado. `Necroshade 6527` **no** está en la receta del deck (Anki y Dark
   Law quedan inalcanzables hasta que tenga esa carta) pero **se mantiene**: quitarla los dejaría sin
   receta alguna.
 
-  **Bases HÉROE de Fusión (L14).** La carta real «Cambio de Máscara» toma **cualquier** monstruo HÉROE,
+  **Bases HÉROE de Fusión (L14) — ampliación REVERTIDA en F4** (ver S8: el motor lee solo el primer
+  registro de cada resultado). La carta real «Cambio de Máscara» toma **cualquier** monstruo HÉROE,
   así que las 7 Fusiones HÉROE que el deck ya posee son bases con la **misma regla de atributo**. Los
   atributos se **midieron** (contenedor prístino para las bases, `datos/cartas_18.tsv` para los
   resultados), no se recordaron:
@@ -47,14 +48,20 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
   | Thunder Giant | 6345 | LUZ | Koga 4686 |
   | Steam Healer | 6535 | AGUA | Ácido 4661, Vapor 4689 |
 
-  ⇒ **+10 registros** (Dian pasa a 6 bases). El deck **no** posee Fusiones HÉROE de OSCURIDAD ni de
-  FUEGO, así que Anki, Dark Law, Goka y Atómico no ganan bases nuevas.
+  ⇒ **+10 registros** que **F4 retiró**: con el finder devolviendo solo el primer registro, esas bases
+  quedaban **tapadas** por Clayman (medido: 56 de 161 registros inertes en F3).
 
-  `Contraste Chaos` (4696) usa los materiales que fija el propio texto del usuario: **2 monstruos
-  «HÉROE Enmascarado»** ⇒ una entrada por cada par no ordenado de las 10 Masked HERO anteriores
-  (45 entradas). **Total: 12 + 10 + 45 = 67 registros nuevos ⇒ 94 + 67 = 161 registros** (F1: 149;
-  F2: 151). Holgura: el *extent* ISO del módulo es 1.472.512 B y la tabla de 161 pide 1.472.160 B ⇒
-  quedan **352 B** sin hacer crecer la ISO.
+  `Contraste Chaos` (4696) usa el par **Cuervo del Crepúsculo 4697 + Fuente 4701** (L16): son los dos
+  únicos HÉROE Enmascarado de **baraja principal** (`kind 1` en `datos/cartas_18.tsv`), así que pueden
+  estar en la mano; los otros 8 son Fusiones del Deck Extra y solo existen si ya están invocados en el
+  campo. **Total: 94 + 10 + 1 = 105 registros** ⇒ el *extent* ISO del módulo (1.472.512 B) no se toca: la
+  tabla pide 1.471.712 B y quedan **800 B** de holgura.
+
+  **Lo que la tabla NO puede expresar (medido en L15/E22).** Una base extra del mismo atributo (la
+  ampliación de L12/L14) y los 45 pares de Chaos **quedan tapados** por el primer registro del resultado:
+  en F3 eran **56 de 161** registros inertes. El usuario lo confirmó in-game: Dian sale con **Clayman** y
+  no con **Wildheart**. La vía práctica para «cualquier base» es el **sustituto del motor** (S9), y el
+  comportamiento real de la carta queda para la fase de código (frente B).
 - **S3 — La tabla nativa no se puede estirar in situ.** La tabla vive en `gmodule/libduel_eng.prx`
   `.data` VMA `0x10acb4` (94 registros de 8 B, terminador `(10,0,0,0)` en `0x10afa4`). Pegado al
   terminador hay un blob de 108 B (`0x10afac..0x10b018`) y después la tabla de 8 B
@@ -70,6 +77,16 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
   (todos los materiales nativos son monstruos), **no se cambia el mapa por cuenta propia**: se vuelve
   al usuario con la medición y las alternativas ya ofrecidas (Rey del Pantano 6044 / materiales del
   donante E-HERO).
+- **S8 — Una receta alcanzable por resultado (F4).** La tabla **no** puede tener dos registros para el
+  mismo `result`: el finder `.text 0xa0454` devuelve el **primero** y ningún camino del motor lee otro
+  (sus únicos llamadores son `classifier 0xa0530` y `get_material 0xa0590`, ambos indexados por
+  resultado). Toda receta nueva debe ser el **primer** (idealmente el único) registro de su resultado, y
+  el `verify` de la herramienta lo exige: **0 resultados con más de un registro**.
+- **S9 — El sustituto como vía práctica (L17).** `Polimerización` + **Rey del Pantano (6044)** +
+  «Cambio de Máscara» (4704), los tres en la mano, invoca cualquiera de los 10 Enmascarados: el motor
+  tiene a 6044 en su lista hardcodeada de sustitutos de material (`BOOT.BIN 0x4a4d8`) y permite **un**
+  sustituto por fusión (bandera `0x10D08C`, `xori v1,v0,1` en `libduel_eng 0xa0dbc`). Es **ciego al
+  atributo** — complementa a S2, no la reemplaza — y King solo **no** alcanza: no puede llenar dos slots.
 
 ## Tasks
 
@@ -90,6 +107,9 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
 | T13 | S2, S6 | Ronda **F3**: ampliar el mapa a los HÉROE de Fusión poseídos (L14, edición data-only) y construir `libduel_eng_f3.prx` + `TF1-E7-F3.iso`. | worker | hecho (E19) |
 | T14 | S4 | Verificación independiente de F3 (misma batería que T11 + igualdad de atributos de cada base nueva). | verify | hecho — PASS (E21) |
 | T15 | S5, S6 | Ronda in-game única sobre `TF1-E7-F3.iso`, higiene de docs (README + entrega) y cierre de la fase. | user + inline | — |
+| T16 | S2, S6, S8 | Ronda **F4**: reconciliar el mapa a **una receta por resultado** (Dian con Clayman; Chaos = Cuervo + Fuente) y construir `libduel_eng_f4.prx` + `TF1-E7-F4.iso`. | worker | hecho (E25) |
+| T17 | S4, S8 | Verificación **independiente** de F4: los 105 registros, cero tapados, geometría, ISO y producto. | verify | hecho — PASS 6/6 (E25) |
+| T18 | S5, S9 | Ronda in-game del usuario sobre `TF1-E7-F4.iso` (Dian con Clayman; Rey del Pantano + «Cambio de Máscara»; Chaos con Cuervo + Fuente). | user | pendiente |
 
 ## Log
 
@@ -315,3 +335,46 @@ ISO de partida: `trabajo/e8/TF1-E8-G6.iso` (arte cerrado). Artefacto de salida: 
   Re-ejecutada acá para dejarla en verde: **PASS** (exit 0); el pegado del informe traía **dos errores de
   transcripción** (la comparación de PH0 y el `unpack` de `CARD_Prop`) que se corrigieron — la versión
   commiteada es la que se ejecutó, no la transcripción.
+- **L15** (usuario, informe del fallo y respuestas, verbatim): «No funcionó, pude hacer una fusion normal
+  pero para traer a Dian con filo salvaje y cambio de mascara no funciono». Del cuestionario: la base era
+  **Héroe Elemental Wildheart**; ubicación: «Primero en la mano y no funciono, lo invoque pero tampoco»;
+  Polimerización: «La use pero no salio la opción para activar la fusion, solamente colocarla»; y qué vio
+  la pantalla: «Nada, es como si no tuviera materiales para fusion y por eso el juego no me daba la
+  opción de activar polimerizacion». Después: «Cambio de mascara si la tenia en mano pero si dices que
+  solamente se puede con Clayman entonces toca probar de nuevo» ⇒ **la hipótesis «faltaba MC en la mano»
+  queda descartada**.
+- **L16** (usuario, resultado y decisiones de F4, verbatim): captura con Dian ya invocada ⇒ **confirmado
+  in-game**: Dian sale con **Clayman** y no con Wildheart. Decisiones del cuestionario: «Vamos con F4 y
+  para dian dejemoslo con clayman, para chaos usa a fontain y crow que legalmente se podria».
+- **L17** (usuario, pedido de investigación, verbatim): «Crees que podemos investigar el funcionamiento
+  del rey del pantano que puede ser usado como cualquier material de fusion y así ver como cuadra con
+  cambio de mascara y lograr colocar varios heroes elementales como base?».
+- **E22** (medido por dos analistas read-only independientes): el motor lee la tabla **solo** por el
+  finder `.text 0xa0454` —escaneo ascendente que devuelve la **primera** coincidencia por `result`— y sus
+  **únicos dos llamadores** son `classifier` (`0xa0530`, jal en `0xa055c`) y `get_material(result, slot)`
+  (`0xa0590`, jal en `0xa05e4`); los **94 resultados nativos son todos distintos**; ningún camino (ni el
+  del sustituto) considera un registro posterior ⇒ **FIRST-MATCH-ONLY**. Consecuencia sobre F3: **56 de
+  161** registros inertes (Bladedge idx 99, Wildheart idx 100, las 3 Fusiones HÉROE de TIERRA y 44 pares
+  de Chaos). El clasificador tiene además casos **hardcodeados por código**: 6639 E. Hero Erikshieler (4
+  materiales), 5502 F.G.D. (5) y 6734 Chimeratech.
+- **E23** (medido): pools de materiales — struct por jugador `0x10e4ec + jugador·4012`; **mano**
+  `+288+slot·4` (count `+12`, código de ubicación 11) **primero**, después las **5 zonas de monstruo**
+  `+48+zona·20`; resolutor `0xa10c4`/`0xa0d2c` con localizador `0xa0c60`; la **oferta del menú 12**
+  (`0xb4058`) mira **solo zonas de monstruo** y la del **menú 14** (`0xb440c`) solo el cementerio. Una
+  **Mágica** (4704) **solo puede venir de la mano**. Queda refutada la sospecha de F1 («solo vale la
+  mano»): un monstruo **en el campo sí** sirve como material; aquel intento estaba confundido por el
+  registro tapado.
+- **E24** (medido): el sustituto existe y es de código — `BOOT.BIN` VMA `0x4a4d8` `is_substitute` con la
+  lista hardcodeada `{6258, 6257, 6256, 6044, 4648, 4275, 4264, 4115}`; la rama vive **dentro del bucle
+  de slots** (`libduel_eng` `0xa0754`/`0xa091c`) y llena el primer slot real sin cubrir, **incluida la
+  base** de nuestros registros; bandera de **un** sustituto por fusión en `0x10D08C`; lista de exclusión
+  `0x4a54c` (sin ningún Enmascarado). No hay bit de `CARD_Prop`/`CARD_Genre` que lo marque.
+- **E25** (T16/T17, ejecutados): ronda **F4** — **105 registros** (94 nativos + 10 de base + 1 de Chaos),
+  payload **848 B**, fin de tabla `VMA 0x112c58`, `sltiu 0x69`;
+  `trabajo/e7/libduel_eng_f4.prx` (1.471.712 B, sha256 `c2873ad9…`) y `trabajo/e7/TF1-E7-F4.iso`
+  (798.787.584 B, sha256 `4323b0aa…`), **6 sectores** distintos de G6; auto-`verify` e `iso` **OK**.
+  Verificación **independiente**: **PASS en las 6 afirmaciones** — tabla y orden de los 11 nuevos exactos;
+  **105 resultados con count 1 y 0 tapados**; PH1 `(1,0x167190,0x112910,0x112910,848,848,7,16)` con las 94
+  nativas en el **mismo índice**; ISO con exactamente los 6 sectores y `libduel_mgr.prx` intacto; **10/10**
+  atributos base↔resultado; y el par de Chaos con `kind 1` (baraja principal). Pins de F1/F2/F3 intactos.
+  Sonda nueva `tools/e7_first_match_probe.py` (manual) en verde; la batería de F3 sigue en verde.
